@@ -1,0 +1,56 @@
+[package]
+name = "http_test"
+version = "1.0.0"
+edition = "2021"
+authors = ["hjamm"]
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+crate-type = ["cdylib","rlib"]
+
+[dependencies]
+# egui_extras = "0.18.0"
+egui = "0.18.0"
+eframe = { version = "0.18.0", features = ["persistence"] }
+nom = "7.1.1" #语法解析
+chrono = {version="0.4",features=["wasmbind"]}
+hdrhistogram = "7.5.0" #直方图统计
+lazy_static = "1.4.0"
+serde = { version = "1", features = ["derive"] } # You only need this if you want app persistence
+serde_json = "1.0.81"
+enum-map = { version = "2", features = ["serde"] }
+fake = {version="2.5.0", features=["chrono","http","uuid"] }
+uuid = {version = "1.1.2", features = [ "v4","fast-rng","macro-diagnostics"]}
+rand = "0.8.5"
+rfd = "0.9.1"
+base64 = "0.13"
+minijinja = {version="0.17.0",features=["source"]}
+# tera = "1.16"
+futures = "0.3.5"
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+tracing-subscriber = "0.3"
+reqwest = {version="0.11.10",features=["cookies","multipart","json","blocking"]}
+tokio={version="1.19.2",features=["rt","rt-multi-thread","macros"]}
+
+# web:
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+console_error_panic_hook = "0.1.6"
+getrandom = {version="0.2.6",features=["js"]}
+tracing-wasm = "0.2"
+ehttp="0.2"
+
+# [target.x86_64-pc-windows-msvc]
+# rustflags = ["-C", "target-feature=+crt-static"]
+
+[profile.release]
+opt-level = 2
+debug = false
+# split-debuginfo = '...'  # Platform-specific.
+# debug-assertions = false
+# overflow-checks = false
+lto = true
+# panic = 'unwind'
+# incremental = false
+# codegen-units = 16
+# rpath = false

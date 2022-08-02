@@ -415,7 +415,7 @@ impl NetTestUi {
                                 self.load_test.process = 1.0;
                                 break;
                             }
-                            if s.2.code == 500 {
+                            if s.2.code > 500 {
                                 self.load_test.result.error = self.load_test.result.error + 1.0;
                             }
                             // self.load_test.result_list.insert(s.0, s.1);

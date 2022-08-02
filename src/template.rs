@@ -8,7 +8,7 @@ use minijinja::{Error, ErrorKind, State};
 use fake::faker::name::en::Name as NameEn;
 use fake::faker::name::zh_cn::Name as NameZh;
 use fake::{StringFaker };
-use fake::{Fake, Faker, ResultFaker};
+use fake::{Fake};
 use uuid::Uuid;
 
 
@@ -213,9 +213,9 @@ fn fake_date_between(_state: &State,fmt:&str,start:DateTime<Utc>,end:DateTime<Ut
 
 #[cfg(test)]
 mod tests {
-    use std::sync::mpsc::Receiver;
+    
 
-    use chrono::{Local, DateTime, Date, Utc, TimeZone};
+    use chrono::{Local, DateTime, Utc, TimeZone};
     use nom::bytes::complete::is_not;
     use nom::sequence::pair;
     use nom::{
@@ -227,10 +227,10 @@ mod tests {
     use serde_json::Value;
 
     use minijinja::{context, Environment};
-    use minijinja::{Error, ErrorKind, State};
+    use minijinja::{Error, State};
 
     use fake::faker::name::zh_cn::Name;
-    use fake::{Fake, Faker, ResultFaker};
+    use fake::{Fake, ResultFaker};
 
     #[test]
     fn test_render() {
@@ -297,7 +297,7 @@ mod tests {
         println!("{}", local.format("%Y%m%d"));
         println!("{}", local.timestamp_millis());
 
-        let d = "2014-11-28T00:00:00Z".parse::<DateTime<Local>>().unwrap();
+        let _d = "2014-11-28T00:00:00Z".parse::<DateTime<Local>>().unwrap();
         let d = Utc.datetime_from_str("2014-11-28 00:00:00", "%Y-%m-%d %H:%M:%S").unwrap();
         println!("{}", d);
 

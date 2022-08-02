@@ -18,10 +18,10 @@ use std::{
 
 use crate::template::rander_template;
 #[cfg(not(target_arch = "wasm32"))]
-use reqwest::{Request, RequestBuilder, Response};
+use reqwest::{Request, Response};
 use serde_json::Value;
 #[cfg(not(target_arch = "wasm32"))]
-use tokio::runtime::{Builder, Runtime};
+use tokio::runtime::{Runtime};
 
 use crate::app::{Method, add_notification};
 
@@ -522,7 +522,7 @@ impl NetTestUi {
                 ui.group(|ui| {
                     let max_hdr = hdrhist.max();
                     let min_hdr = hdrhist.min();
-                    let mut chart = BarChart::new(
+                    let chart = BarChart::new(
                         (min_hdr..max_hdr)
                             .step_by(10)
                             .map(|x| (x as f64, hdrhist.count_between(x, x + 10) as f64))
@@ -546,7 +546,7 @@ impl NetTestUi {
 impl RequestUi {
     pub fn ui(&mut self, ui: &mut Ui) {
         ui.group(|ui| {
-            let Vec2 { x, y } = ui.available_size();
+            let Vec2 { x, y: _ } = ui.available_size();
             ui.set_max_width(x/2.0);
             ui.vertical(|ui| {
                 egui::ScrollArea::vertical()
@@ -1023,7 +1023,7 @@ fn start_load_test_thread(sender: Sender<(i64, ResponseUi)>,times: u16,reqs: u32
     for _ in 0..times {
         for _ in 0..reqs {
             let req = sender_requset.pop().unwrap();
-            let f = send_load_test_request_per_sender(sender.clone(), req);
+            let _f = send_load_test_request_per_sender(sender.clone(), req);
         }
         let duration = start.elapsed().unwrap().as_millis() as u64;
         if duration<1000 {

@@ -1,13 +1,13 @@
 #![warn(non_snake_case)]
-use std::collections::{BTreeMap, VecDeque};
+use std::collections::{BTreeMap};
 use std::io::BufReader;
 use std::str::FromStr;
-use std::sync::mpsc::{sync_channel, Receiver, Sender, SyncSender};
-use std::sync::{Arc, Mutex};
+use std::sync::mpsc::{Receiver};
 
-use egui::text::LayoutJob;
-use egui::{collapsing_header, FontData, FontDefinitions, Id, Label, TextBuffer};
-use egui::{Color32, FontId, RichText, TextFormat};
+
+
+use egui::{FontData, FontDefinitions, Id, Label, TextBuffer};
+
 // use egui_extras::{Size, StripBuilder, TableBuilder};
 use serde::{Deserialize, Serialize};
 
@@ -369,7 +369,7 @@ impl eframe::App for TemplateApp {
                     }
                     if ui.button("保存为json文件").clicked() {
                         let app_json = std::fs::File::open("app.json")
-                            .unwrap_or_else(|err| std::fs::File::create("app.json").unwrap());
+                            .unwrap_or_else(|_err| std::fs::File::create("app.json").unwrap());
                         serde_json::to_writer_pretty(app_json, self);
                         rfd::MessageDialog::new()
                             .set_level(rfd::MessageLevel::Info)

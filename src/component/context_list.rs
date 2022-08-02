@@ -1,6 +1,6 @@
 #![warn(non_snake_case)]
 use crate::app::{ADD_ID_KEY, ID_COUNT_KEY};
-use egui::{Id, InnerResponse, RichText, Ui};
+use egui::{Id, InnerResponse, Ui};
 use std::{collections::BTreeMap, sync::mpsc::SyncSender};
 
 #[derive(Clone, PartialEq, Debug)]

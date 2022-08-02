@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use egui::{text::LayoutJob, Galley, Key, Modifiers, Pos2, Ui, Id};
+use egui::{text::LayoutJob, Galley, Key, Modifiers, Pos2, Ui};
 use crate::component::template_tools::{TemplateHint,TemplateHintInfo};
 
 type EditCursorPair = (usize,usize);
@@ -95,7 +95,7 @@ pub fn code_editor_ui(ui: &mut egui::Ui, code: &mut String, language: &str) {
 
         let resp_id = editor_rsp.id;
         let mut edit_pos:Option<EditCursorPair> = None;
-        if let Some(mut state) = egui::TextEdit::load_state(ui.ctx(), resp_id) {
+        if let Some(state) = egui::TextEdit::load_state(ui.ctx(), resp_id) {
             if let Some(ccursor) = state.ccursor_range() {
                 let end = ccursor.primary.index;
                 let start = ccursor.secondary.index;

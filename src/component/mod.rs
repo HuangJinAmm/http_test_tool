@@ -11,7 +11,7 @@ pub use toggle::toggle;
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    
     use chrono::Local;
 
     #[test]

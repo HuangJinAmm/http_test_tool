@@ -183,7 +183,7 @@ impl ContextTree {
     fn sender_add_info(&self, ui: &mut Ui, sub_id: u64) {
         let mut data = ui.data();
         let sender: SyncSender<(u64, u64)> = data.get_temp(Id::new(ADD_ID_KEY)).unwrap();
-        sender.send((self.id, sub_id));
+        let _ = sender.send((self.id, sub_id));;
     }
 
     fn add_sub_item(&mut self, ui: &mut Ui, add_title: &mut String) -> u64 {

@@ -27,10 +27,10 @@ lazy_static! {
         t_env.add_function("STR", fake_str);
         t_env.add_function("EMAIL", fake_email);
         t_env.add_function("USERNAME", fake_username);
-        t_env.add_function("IPV4", fake_IP4);
-        t_env.add_function("IPV6", fake_IP6);
-        t_env.add_function("MAC", fake_MAC);
-        t_env.add_function("USERAGENT", fake_USERAGENT);
+        t_env.add_function("IPV4", fake_ip4);
+        t_env.add_function("IPV6", fake_ip6);
+        t_env.add_function("MAC", fake_mac);
+        t_env.add_function("USERAGENT", fake_useragent);
         t_env.add_function("PASSWORD", fake_password);
 
         t_env.add_function("UUID", fake_uuid);
@@ -63,17 +63,17 @@ pub fn rander_template(template: &str) -> Result<String,Error> {
     Ok(result)
 }
 
-fn fake_name_zh(_state: &State) -> Result<String, Error> {
+fn fake_name_zh(_state: &State<'_, '_>) -> Result<String, Error> {
     let name = NameZh().fake();
     Ok(name)
 }
 
-fn fake_name_en(_state: &State) -> Result<String, Error> {
+fn fake_name_en(_state: &State<'_, '_>) -> Result<String, Error> {
     let name = NameEn().fake();
     Ok(name)
 }
 
-fn fake_hex(_state: &State, low: usize, mut high: usize) -> Result<String, Error> {
+fn fake_hex(_state: &State<'_, '_>, low: usize, mut high: usize) -> Result<String, Error> {
     if high <= low {
         high = low + 1;
     }
@@ -82,7 +82,7 @@ fn fake_hex(_state: &State, low: usize, mut high: usize) -> Result<String, Error
     Ok(a)
 }
 
-fn fake_str(_state: &State, low: usize, mut high: usize) -> Result<String, Error> {
+fn fake_str(_state: &State<'_, '_>, low: usize, mut high: usize) -> Result<String, Error> {
     if high <= low {
         high = low + 1;
     }
@@ -92,7 +92,7 @@ fn fake_str(_state: &State, low: usize, mut high: usize) -> Result<String, Error
 
 
 
-fn fake_num_str(_state: &State, low: usize, mut high: usize) -> Result<String, Error> {
+fn fake_num_str(_state: &State<'_, '_>, low: usize, mut high: usize) -> Result<String, Error> {
     if high <= low {
         high = low + 1;
     }
@@ -101,7 +101,7 @@ fn fake_num_str(_state: &State, low: usize, mut high: usize) -> Result<String, E
     Ok(a)
 }
 
-fn fake_num(_state: &State, low: usize, mut high: usize) -> Result<String, Error> {
+fn fake_num(_state: &State<'_, '_>, low: usize, mut high: usize) -> Result<String, Error> {
     if high <= low {
         high = low + 1;
     }
@@ -109,33 +109,33 @@ fn fake_num(_state: &State, low: usize, mut high: usize) -> Result<String, Error
     Ok(a.to_string())
 }
 
-fn fake_email(_state: &State) -> Result<String, Error> {
+fn fake_email(_state: &State<'_, '_>) -> Result<String, Error> {
     let f: String = fake::faker::internet::en::FreeEmail().fake();
     Ok(f)
 }
 
-fn fake_username(_state: &State) -> Result<String, Error> {
+fn fake_username(_state: &State<'_, '_>) -> Result<String, Error> {
     let f: String = fake::faker::internet::en::Username().fake();
     Ok(f)
 }
-fn fake_IP4(_state: &State) -> Result<String, Error> {
+fn fake_ip4(_state: &State<'_, '_>) -> Result<String, Error> {
     let f: String = fake::faker::internet::en::IPv4().fake();
     Ok(f)
 }
-fn fake_IP6(_state: &State) -> Result<String, Error> {
+fn fake_ip6(_state: &State<'_, '_>) -> Result<String, Error> {
     let f: String = fake::faker::internet::en::IPv6().fake();
     Ok(f)
 }
-fn fake_USERAGENT(_state: &State) -> Result<String, Error> {
+fn fake_useragent(_state: &State<'_, '_>) -> Result<String, Error> {
     let f: String = fake::faker::internet::en::UserAgent().fake();
     Ok(f)
 }
-fn fake_MAC(_state: &State) -> Result<String, Error> {
+fn fake_mac(_state: &State<'_, '_>) -> Result<String, Error> {
     let f: String = fake::faker::internet::en::MACAddress().fake();
     Ok(f)
 }
 
-fn fake_password(_state: &State, low: usize, mut high: usize) -> Result<String, Error> {
+fn fake_password(_state: &State<'_, '_>, low: usize, mut high: usize) -> Result<String, Error> {
     if high <= low {
         high = low + 1;
     }
@@ -143,22 +143,22 @@ fn fake_password(_state: &State, low: usize, mut high: usize) -> Result<String, 
     Ok(f)
 }
 
-fn fake_uuid(_state: &State) -> Result<String, Error> {
+fn fake_uuid(_state: &State<'_, '_>) -> Result<String, Error> {
     let f = Uuid::new_v4(); 
     Ok(f.hyphenated().to_string())
 }
 
-fn fake_uuid_s(_state: &State) -> Result<String, Error> {
+fn fake_uuid_s(_state: &State<'_, '_>) -> Result<String, Error> {
     let f = Uuid::new_v4(); 
     Ok(f.simple().to_string())
 }
 
-fn fake_base64_en(_state: &State,fmt:String) -> Result<String, Error> {
+fn fake_base64_en(_state: &State<'_, '_>,fmt:String) -> Result<String, Error> {
     let f = base64::encode(fmt);
     Ok(f)
 }
 
-fn fake_base64_de(_state: &State,fmt:String) -> Result<String, Error> {
+fn fake_base64_de(_state: &State<'_, '_>,fmt:String) -> Result<String, Error> {
     let df = base64::decode(fmt.clone());
     if let Ok(bytes) = df {
         if let Ok(f) = String::from_utf8(bytes) {
@@ -167,13 +167,13 @@ fn fake_base64_de(_state: &State,fmt:String) -> Result<String, Error> {
     }
     Ok(fmt)
 }
-fn fake_now(_state: &State,fmt:String) -> Result<String, Error> {
+fn fake_now(_state: &State<'_, '_>,fmt:String) -> Result<String, Error> {
     let local = Local::now();
     let fmt_data = local.format(fmt.as_str());
     Ok(fmt_data.to_string())
 }
 
-fn fake_datetime(_state: &State,fmt:String) -> Result<String, Error> {
+fn fake_datetime(_state: &State<'_, '_>,fmt:String) -> Result<String, Error> {
     let local =Utc::now();
     let ten_years = Duration::days(3660);
     let start = local.checked_sub_signed(ten_years).unwrap();
@@ -181,7 +181,7 @@ fn fake_datetime(_state: &State,fmt:String) -> Result<String, Error> {
     fake_date_between(_state, fmt.as_str(), start, end)
 }
 
-fn fake_datetime_after(_state: &State,fmt:String,date:String) -> Result<String, Error> {
+fn fake_datetime_after(_state: &State<'_, '_>,fmt:String,date:String) -> Result<String, Error> {
     let local =Utc::now();
     let ten_years = Duration::days(3660);
     let end = local.checked_add_signed(ten_years).unwrap();
@@ -192,7 +192,7 @@ fn fake_datetime_after(_state: &State,fmt:String,date:String) -> Result<String, 
     }
 }
 
-fn fake_datetime_before(_state: &State,fmt:String,date:String) -> Result<String, Error> {
+fn fake_datetime_before(_state: &State<'_, '_>,fmt:String,date:String) -> Result<String, Error> {
     let local =Utc::now();
     let ten_years = Duration::days(3660);
     let start = local.checked_sub_signed(ten_years).unwrap();
@@ -203,7 +203,7 @@ fn fake_datetime_before(_state: &State,fmt:String,date:String) -> Result<String,
     }
 }
 
-fn fake_date_between(_state: &State,fmt:&str,start:DateTime<Utc>,end:DateTime<Utc>) -> Result<String, Error> {
+fn fake_date_between(_state: &State<'_, '_>,fmt:&str,start:DateTime<Utc>,end:DateTime<Utc>) -> Result<String, Error> {
     let f:String = fake::faker::chrono::zh_cn::DateTimeBetween(start,end).fake();
     let d = f.parse::<DateTime<Utc>>().unwrap();
     Ok(d.format(fmt).to_string())
@@ -249,12 +249,12 @@ mod tests {
         println!("{}", tmpl.render(context!(name => "John")).unwrap());
     }
 
-    fn test_minijinja_fn(_state: &State, mut name: String) -> Result<String, Error> {
+    fn test_minijinja_fn(_state: &State<'_, '_>, mut name: String) -> Result<String, Error> {
         name.push_str("aaaaa");
         Ok(name)
     }
 
-    fn test_fake_name_zh(_state: &State) -> Result<String, Error> {
+    fn test_fake_name_zh(_state: &State<'_, '_>) -> Result<String, Error> {
         let name = Name().fake();
         Ok(name)
     }
@@ -344,20 +344,5 @@ mod tests {
         let s = serde_json::to_string_pretty(&v).unwrap();
         // Access parts of the data by indexing with square brackets.
         println!("{}", s);
-    }
-
-    #[test]
-    fn test_fake() {
-        // generate name on success but some error code on failure
-        let f = ResultFaker::ok(Name());
-        for _ in 0..2 {
-            let a = f.fake::<Result<String, u8>>();
-            dbg!(a);
-        }
-        let f = ResultFaker::with(3.., 1..10);
-        for _ in 0..5 {
-            let a = f.fake::<Result<u32, usize>>();
-            dbg!(a);
-        }
     }
 }

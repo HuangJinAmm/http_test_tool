@@ -463,13 +463,13 @@ impl NetTestUi {
                 ui.label(self.resp.time.to_string());
                 ui.label("响应时间：");
                 // }
-                let codeRichText = match self.resp.code {
+                let code_rich_text = match self.resp.code {
                     x if x >= 100 && x < 200 => RichText::new(x.to_string()).color(Color32::YELLOW),
                     x if x >= 200 && x < 400 => RichText::new(x.to_string()).color(Color32::GREEN),
                     x if x >= 400 && x < 600 => RichText::new(x.to_string()).color(Color32::RED),
                     _ => RichText::new(""),
                 };
-                ui.label(codeRichText);
+                ui.label(code_rich_text);
                 ui.label("响应状态码：")
             });
             ui.end_row();
@@ -922,11 +922,11 @@ async fn send_load_test_request(sender: Sender<(usize,i64, ResponseUi)>,client:C
     match client.execute(req).await {
         Ok(rep) => {
             let end = Local::now().timestamp_millis();
-            let respUi = covert_to_ui(rep).await;
-            sender.send((index,end - start, respUi)).unwrap();
+            let resp_ui = covert_to_ui(rep).await;
+            sender.send((index,end - start, resp_ui)).unwrap();
         }
         Err(err) => {
-            let respUi = ResponseUi {
+            let resp_ui = ResponseUi {
                 headers: Default::default(),
                 body: err.to_string(),
                 size: 0,
@@ -934,7 +934,7 @@ async fn send_load_test_request(sender: Sender<(usize,i64, ResponseUi)>,client:C
                 time: 0,
             };
             let end = Local::now().timestamp_millis();
-            sender.send((index,end - start, respUi)).unwrap();
+            sender.send((index,end - start, resp_ui)).unwrap();
         }
     }
 }
@@ -1031,7 +1031,7 @@ fn start_load_test_thread(sender: Sender<(i64, ResponseUi)>,times: u16,reqs: u32
         }
     }
     //发送一个完成的数据
-    sender.send((-1, ResponseUi::default()));
+    let _ = sender.send((-1, ResponseUi::default()));;
 }
 
 fn start_load_test_multisender(sender:Sender<(usize,i64, ResponseUi)>, times: u16, reqs: u32, req: RequestUi) {

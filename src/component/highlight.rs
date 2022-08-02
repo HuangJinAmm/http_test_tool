@@ -37,7 +37,11 @@ lazy_static! {
         tmh.add(TemplateHintInfo::new("BASE64编码".into(), "BASE64编码".into(),r#"{{BASE64_EN(字符串)}}"#.into()));
         tmh.add(TemplateHintInfo::new("BASE64解码".into(), "BASE64解码".into(),r#"{{BASE64_DE(字符串)}}"#.into()));
 
-        tmh.add(TemplateHintInfo::new("预留".into(), "预留".into(),r#"{{BASE64_DE(字符串)}}"#.into()));
+        tmh.add(TemplateHintInfo::new("转换器模板".into(), "转换器语法模板".into(),"{% filter 过滤器 %}\n需要转换的内容\n{% endfilter %}".into()));
+
+        tmh.add(TemplateHintInfo::new("AES加密ECB模式".into(), "AES加密ECB模式".into(),r#"{{AES_ECB_EN('字符串','密钥')}}"#.into()));
+        tmh.add(TemplateHintInfo::new("AES加密CBC模式".into(), "AES加密CBC模式".into(),r#"{{AES_CBC_EN('字符串','密钥','IV')}}"#.into()));
+        tmh.add(TemplateHintInfo::new("AES加密ECB模式".into(), "AES加密CTR模式".into(),r#"{{AES_CTR_EN('字符串','密钥','IV')}}"#.into()));
         Arc::new(Mutex::new(tmh))
     };
 }
@@ -137,7 +141,7 @@ pub fn code_editor_ui(ui: &mut egui::Ui, code: &mut String, language: &str) {
                 .collapsible(false)
                 .resizable(false)
                 .title_bar(false)
-                .default_width(100.)
+                .min_width(300.0)
                 .current_pos(pos)
                 .show(ui.ctx(), |ui| {
                     if TEMPLATE_HINT.lock().unwrap().ui(ui, edit_pos, code) {
@@ -583,17 +587,21 @@ impl Highlighter {
                     .map(|i| i + 2)
                     .or_else(|| text.find('\n'))
                     .unwrap_or(text.len());
-                let word = &text[1..(end-1)];
-                let tt = if word.starts_with("{{") && word.ends_with("}}") {
-                    TokenType::Keyword
+                if end > 5 {
+                    let word = &text[1..(end-1)];
+                    let tt = if word.starts_with("{{") && word.ends_with("}}") {
+                        TokenType::Keyword
+                    } else {
+                        TokenType::StringLiteral
+                    };
+                    let end_quote = &text[(end-1)..end];
+                    job.append(&text[..1], 0.0, theme.formats[TokenType::StringLiteral].clone());
+                    job.append(word, 0.0, theme.formats[tt].clone());
+                    if end_quote == "\"" {
+                        job.append(end_quote, 0.0, theme.formats[TokenType::StringLiteral].clone());
+                    }
                 } else {
-                    TokenType::StringLiteral
-                };
-                let end_quote = &text[(end-1)..end];
-                job.append(&text[..1], 0.0, theme.formats[TokenType::StringLiteral].clone());
-                job.append(word, 0.0, theme.formats[tt].clone());
-                if end_quote == "\"" {
-                    job.append(end_quote, 0.0, theme.formats[TokenType::StringLiteral].clone());
+                    job.append(&text[..end], 0.0, theme.formats[TokenType::StringLiteral].clone());
                 }
                 text = &text[end..];
             } else if text.starts_with(|c: char| c.is_ascii_alphanumeric()) {

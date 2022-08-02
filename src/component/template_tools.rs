@@ -17,22 +17,35 @@ impl TemplateHint {
     }
     
     pub fn ui(&self,ui: &mut egui::Ui,edit_pos:Option<(usize,usize)>,code:&mut String) -> bool{
+        ui.columns(3, |ui|{
+                        let l = self.hint_infos.len();
+                        let mut results:Vec<bool> = Vec::new();
+                        for i in 0..l {
+                            let c = i%3;
+                            let r = self.hint_infos[i].ui(&mut ui[c], edit_pos, code);
+                            results.push(r);
+                            if c==2 {
+                                ui[c].end_row();
+                            }
+                        }
+                        results.into_iter().any(|i|i)
+                })
 
-        egui::Grid::new("id_source_adsfasdfasdfas")
-            .num_columns(3)
-            .min_col_width(80.)
-            .show(ui, |ui|{
-                let l = self.hint_infos.len();
-                let mut results:Vec<bool> = Vec::new();
-                for i in 0..l {
-                    let r = self.hint_infos[i].ui(ui, edit_pos, code);
-                    results.push(r);
-                    if i%3==2 {
-                        ui.end_row();
-                    }
-                }
-                results.into_iter().any(|i|i)
-            }).inner
+        // egui::Grid::new("id_source_adsfasdfasdfas")
+        //     .num_columns(3)
+        //     .min_col_width(80.)
+        //     .show(ui, |ui|{
+        //         let l = self.hint_infos.len();
+        //         let mut results:Vec<bool> = Vec::new();
+        //         for i in 0..l {
+        //             let r = self.hint_infos[i].ui(ui, edit_pos, code);
+        //             results.push(r);
+        //             if i%3==2 {
+        //                 ui.end_row();
+        //             }
+        //         }
+        //         results.into_iter().any(|i|i)
+        //     }).inner
 
         // let one = self.hint_infos.iter()
         //         .enumerate()

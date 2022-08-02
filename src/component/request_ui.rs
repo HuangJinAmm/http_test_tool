@@ -612,7 +612,6 @@ impl RequestUi {
                                             match rander_template(self.body.as_str()) {
                                                 Ok(parsed_temp) => template_str = parsed_temp,
                                                 Err(e) =>{
-                                                    dbg!(&e);
                                                     let mut msg = "模板语法错误：".to_string();
                                                     msg.push_str(e.to_string().as_str());
                                                     add_notification(ui.ctx(), msg.as_str());

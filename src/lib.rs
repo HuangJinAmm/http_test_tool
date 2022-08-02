@@ -5,7 +5,8 @@ extern crate lazy_static;
 
 mod app;
 mod component;
-mod template;
+pub mod aes_tool;
+pub mod template;
 pub use app::TemplateApp;
 pub use template::rander_template;
 

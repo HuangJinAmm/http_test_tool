@@ -7,6 +7,7 @@ extern crate lazy_static;
 // mod json_sy;
 mod app;
 mod component;
+pub mod aes_tool;
 mod template;
 use app::TemplateApp;
 
@@ -14,7 +15,9 @@ use app::TemplateApp;
 #[cfg(not(target_arch = "wasm32"))]
 fn main() {
     // Log to stdout (if you run with `RUST_LOG=debug`).
+
     tracing_subscriber::fmt::init();
+
     let native_options = eframe::NativeOptions{
         // icon_data: todo!(),
         initial_window_size: Some(egui::Vec2{x:1000.0,y:600.0}),

@@ -5,7 +5,7 @@ use std::sync::mpsc::{Receiver};
 
 
 
-use egui::{FontData, FontDefinitions, Id, Label, TextBuffer};
+use egui::{FontData, FontDefinitions, Id, Label};
 
 // use egui_extras::{Size, StripBuilder, TableBuilder};
 use serde::{Deserialize, Serialize};

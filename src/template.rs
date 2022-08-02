@@ -318,9 +318,9 @@ mod tests {
         delimited(char('('), is_not(")"), char(')'))(input)
     }
 
-    fn pair_parse(input: &str) -> IResult<&str, (char, char)> {
-        pair(char('('), char(')'))(input)
-    }
+    // fn pair_parse(input: &str) -> IResult<&str, (char, char)> {
+    //     pair(char('('), char(')'))(input)
+    // }
 
     #[test]
     fn test_parse_demo1() {

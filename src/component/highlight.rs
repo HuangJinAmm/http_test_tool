@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use egui::{text::LayoutJob, Galley, Key, Modifiers, Pos2, Ui};
+use egui::{text::LayoutJob, Key, Modifiers, Pos2};
 use crate::component::template_tools::{TemplateHint,TemplateHintInfo};
 
 type EditCursorPair = (usize,usize);

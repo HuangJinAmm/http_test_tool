@@ -1,4 +1,3 @@
-#![warn(non_snake_case)]
 use std::collections::{BTreeMap};
 use std::io::BufReader;
 use std::str::FromStr;
@@ -200,13 +199,13 @@ impl TemplateApp {
         // }
     }
 
-    pub fn reset(&mut self) {
-        self.records = BTreeMap::new();
-        self.records_list = ContextTree::new(0, "HTTP测试");
-        self.filter = "".to_string();
-        self.list_selected = 0;
-        self.list_selected_str = None;
-    }
+    // pub fn reset(&mut self) {
+    //     self.records = BTreeMap::new();
+    //     self.records_list = ContextTree::new(0, "HTTP测试");
+    //     self.filter = "".to_string();
+    //     self.list_selected = 0;
+    //     self.list_selected_str = None;
+    // }
 
     /// Called once before the first frame.
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {

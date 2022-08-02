@@ -181,19 +181,19 @@ pub fn code_editor_ui(ui: &mut egui::Ui, code: &mut String, language: &str) {
     // }
 }
 
-pub fn highlight_layouter<'a>(
-    ui: &'a mut egui::Ui,
-    language: &'a str,
-) -> impl FnMut(&Ui, &str, f32) -> Arc<Galley> + 'a {
-    let theme = CodeTheme::from_memory(ui.ctx());
+// pub fn highlight_layouter<'a>(
+//     ui: &'a mut egui::Ui,
+//     language: &'a str,
+// ) -> impl FnMut(&Ui, &str, f32) -> Arc<Galley> + 'a {
+//     let theme = CodeTheme::from_memory(ui.ctx());
 
-    let layouter = move |ui: &egui::Ui, string: &str, _wrap_width: f32| {
-        let layout_job = highlight(ui.ctx(), &theme, string, language);
-        // layout_job.wrap.max_width = wrap_width; // no wrapping
-        ui.fonts().layout_job(layout_job)
-    };
-    layouter
-}
+//     let layouter = move |ui: &egui::Ui, string: &str, _wrap_width: f32| {
+//         let layout_job = highlight(ui.ctx(), &theme, string, language);
+//         // layout_job.wrap.max_width = wrap_width; // no wrapping
+//         ui.fonts().layout_job(layout_job)
+//     };
+//     layouter
+// }
 
 /// Memoized Code highlighting
 pub fn highlight(ctx: &egui::Context, theme: &CodeTheme, code: &str, language: &str) -> LayoutJob {

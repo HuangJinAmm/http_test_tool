@@ -894,27 +894,27 @@ async fn covert_to_ui(rep: Response) -> ResponseUi {
     }
 }
 
-async fn send_load_test_request_noclient(sender: Sender<(i64, ResponseUi)>,client:Client, req: Request) {
-    let start = Local::now().timestamp_millis();
-    match client.execute(req).await {
-        Ok(rep) => {
-            let end = Local::now().timestamp_millis();
-            let respUi = covert_to_ui(rep).await;
-            sender.send((end - start, respUi)).unwrap();
-        }
-        Err(err) => {
-            let respUi = ResponseUi {
-                headers: Default::default(),
-                body: err.to_string(),
-                size: 0,
-                code: 555,
-                time: 0,
-            };
-            let end = Local::now().timestamp_millis();
-            sender.send((end - start, respUi)).unwrap();
-        }
-    }
-}
+// async fn send_load_test_request_noclient(sender: Sender<(i64, ResponseUi)>,client:Client, req: Request) {
+//     let start = Local::now().timestamp_millis();
+//     match client.execute(req).await {
+//         Ok(rep) => {
+//             let end = Local::now().timestamp_millis();
+//             let resp_ui = covert_to_ui(rep).await;
+//             sender.send((end - start, resp_ui)).unwrap();
+//         }
+//         Err(err) => {
+//             let resp_ui = ResponseUi {
+//                 headers: Default::default(),
+//                 body: err.to_string(),
+//                 size: 0,
+//                 code: 555,
+//                 time: 0,
+//             };
+//             let end = Local::now().timestamp_millis();
+//             sender.send((end - start, resp_ui)).unwrap();
+//         }
+//     }
+// }
 async fn send_load_test_request(sender: Sender<(usize,i64, ResponseUi)>,client:Client, ireq: (usize,Request)) {
 
     let start = Local::now().timestamp_millis();
@@ -939,100 +939,100 @@ async fn send_load_test_request(sender: Sender<(usize,i64, ResponseUi)>,client:C
     }
 }
 
-fn send_load_test_request_per_sender(sender: Sender<(i64, ResponseUi)>, req: reqwest::blocking::Request) {
-    thread::Builder::new().name("load_test_thread".into()).spawn(move ||{
-            let client = reqwest::blocking::Client::new();       
-            let start = Local::now().timestamp_millis();
-            match client.execute(req) {
-                Ok(rep) => {
-                    let end = Local::now().timestamp_millis();
-                    let resp_ui = rep.into();
-                    sender.send((end - start, resp_ui)).unwrap();
-                }
-                Err(err) => {
-                    let resp_ui = ResponseUi {
-                        headers: Default::default(),
-                        body: err.to_string(),
-                        size: 0,
-                        code: 555,
-                        time: 0,
-                    };
-                    let end = Local::now().timestamp_millis();
-                    sender.send((end - start, resp_ui)).unwrap();
-                }
-            }
-    }).unwrap();
-}
-fn start_load_test(sender: Sender<(usize,i64, ResponseUi)>, times: u16, reqs: u32, req: RequestUi) {
-    thread::Builder::new()
-        .name("send_req_thread".to_string())
-        .spawn(move || {
-            let capacity: usize = (times as usize) * (reqs as usize);
-            let mut sender_requset: Vec<(usize,Request)> = Vec::with_capacity(capacity);
+// fn send_load_test_request_per_sender(sender: Sender<(i64, ResponseUi)>, req: reqwest::blocking::Request) {
+//     thread::Builder::new().name("load_test_thread".into()).spawn(move ||{
+//             let client = reqwest::blocking::Client::new();       
+//             let start = Local::now().timestamp_millis();
+//             match client.execute(req) {
+//                 Ok(rep) => {
+//                     let end = Local::now().timestamp_millis();
+//                     let resp_ui = rep.into();
+//                     sender.send((end - start, resp_ui)).unwrap();
+//                 }
+//                 Err(err) => {
+//                     let resp_ui = ResponseUi {
+//                         headers: Default::default(),
+//                         body: err.to_string(),
+//                         size: 0,
+//                         code: 555,
+//                         time: 0,
+//                     };
+//                     let end = Local::now().timestamp_millis();
+//                     sender.send((end - start, resp_ui)).unwrap();
+//                 }
+//             }
+//     }).unwrap();
+// }
+// fn start_load_test(sender: Sender<(usize,i64, ResponseUi)>, times: u16, reqs: u32, req: RequestUi) {
+//     thread::Builder::new()
+//         .name("send_req_thread".to_string())
+//         .spawn(move || {
+//             let capacity: usize = (times as usize) * (reqs as usize);
+//             let mut sender_requset: Vec<(usize,Request)> = Vec::with_capacity(capacity);
 
-            let start = std::time::SystemTime::now();
-            for i in 0..capacity {
-                let body = req.body.clone();
-                let rander_body = rander_template(body.as_str()).unwrap_or(body);
-                let mut req_clone = req.clone();
-                req_clone.body = rander_body;
-                sender_requset.push((i,req_clone.into()));
-            }
-            let duration = start.elapsed().unwrap().as_millis() as u64;
-            println!("生成完成：{}-{}",sender_requset.len(),duration);
+//             let start = std::time::SystemTime::now();
+//             for i in 0..capacity {
+//                 let body = req.body.clone();
+//                 let rander_body = rander_template(body.as_str()).unwrap_or(body);
+//                 let mut req_clone = req.clone();
+//                 req_clone.body = rander_body;
+//                 sender_requset.push((i,req_clone.into()));
+//             }
+//             let duration = start.elapsed().unwrap().as_millis() as u64;
+//             println!("生成完成：{}-{}",sender_requset.len(),duration);
 
-            let client = reqwest::Client::new();
-            let _respui = RT.block_on(async move {
-                for _ in 0..times {
-                    let start = std::time::SystemTime::now();
-                    let mut f_vec = Vec::new();
-                    for _ in 0..reqs {
-                        let req = sender_requset.pop().unwrap();
-                        let f = send_load_test_request(sender.clone(),client.clone(), req);
-                        f_vec.push(f);
-                    }
-                    let _result = stream::iter(f_vec)
-                                            .buffer_unordered(capacity)
-                                            .collect::<Vec<_>>().await;
-                    let duration = start.elapsed().unwrap().as_millis() as u64;
-                    println!("reqs:{},duration:{}",reqs,duration);
-                    let duration = start.elapsed().unwrap().as_millis() as u64;
-                    if duration<1000 {
-                        tokio::time::sleep(Duration::from_millis(1000-duration)).await;
-                    }
-                }
-                //发送一个完成的数据
-                sender.send((0,-1, ResponseUi::default()))
-            });
-        })
-        .unwrap();
-}
+//             let client = reqwest::Client::new();
+//             let _respui = RT.block_on(async move {
+//                 for _ in 0..times {
+//                     let start = std::time::SystemTime::now();
+//                     let mut f_vec = Vec::new();
+//                     for _ in 0..reqs {
+//                         let req = sender_requset.pop().unwrap();
+//                         let f = send_load_test_request(sender.clone(),client.clone(), req);
+//                         f_vec.push(f);
+//                     }
+//                     let _result = stream::iter(f_vec)
+//                                             .buffer_unordered(capacity)
+//                                             .collect::<Vec<_>>().await;
+//                     let duration = start.elapsed().unwrap().as_millis() as u64;
+//                     println!("reqs:{},duration:{}",reqs,duration);
+//                     let duration = start.elapsed().unwrap().as_millis() as u64;
+//                     if duration<1000 {
+//                         tokio::time::sleep(Duration::from_millis(1000-duration)).await;
+//                     }
+//                 }
+//                 //发送一个完成的数据
+//                 sender.send((0,-1, ResponseUi::default()))
+//             });
+//         })
+//         .unwrap();
+// }
 
-fn start_load_test_thread(sender: Sender<(i64, ResponseUi)>,times: u16,reqs: u32,req: RequestUi) {
-    let capacity: usize = (times as usize) * (reqs as usize);
-    let mut sender_requset: Vec<reqwest::blocking::Request> = Vec::with_capacity(capacity);
+// fn start_load_test_thread(sender: Sender<(i64, ResponseUi)>,times: u16,reqs: u32,req: RequestUi) {
+//     let capacity: usize = (times as usize) * (reqs as usize);
+//     let mut sender_requset: Vec<reqwest::blocking::Request> = Vec::with_capacity(capacity);
 
-    let start = std::time::SystemTime::now();
-    for _i in 0..capacity {
-        let body = req.body.clone();
-        let rander_body = rander_template(body.as_str()).unwrap_or(body);
-        let mut req_clone = req.clone();
-        req_clone.body = rander_body;
-        sender_requset.push(req_clone.into());
-    }
-    for _ in 0..times {
-        for _ in 0..reqs {
-            let req = sender_requset.pop().unwrap();
-            let _f = send_load_test_request_per_sender(sender.clone(), req);
-        }
-        let duration = start.elapsed().unwrap().as_millis() as u64;
-        if duration<1000 {
-            thread::sleep(Duration::from_millis(1000-duration));
-        }
-    }
-    //发送一个完成的数据
-    let _ = sender.send((-1, ResponseUi::default()));;
-}
+//     let start = std::time::SystemTime::now();
+//     for _i in 0..capacity {
+//         let body = req.body.clone();
+//         let rander_body = rander_template(body.as_str()).unwrap_or(body);
+//         let mut req_clone = req.clone();
+//         req_clone.body = rander_body;
+//         sender_requset.push(req_clone.into());
+//     }
+//     for _ in 0..times {
+//         for _ in 0..reqs {
+//             let req = sender_requset.pop().unwrap();
+//             let _f = send_load_test_request_per_sender(sender.clone(), req);
+//         }
+//         let duration = start.elapsed().unwrap().as_millis() as u64;
+//         if duration<1000 {
+//             thread::sleep(Duration::from_millis(1000-duration));
+//         }
+//     }
+//     //发送一个完成的数据
+//     let _ = sender.send((-1, ResponseUi::default()));;
+// }
 
 fn start_load_test_multisender(sender:Sender<(usize,i64, ResponseUi)>, times: u16, reqs: u32, req: RequestUi) {
     thread::Builder::new()

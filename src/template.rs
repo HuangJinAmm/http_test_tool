@@ -230,7 +230,7 @@ mod tests {
     use minijinja::{Error, State};
 
     use fake::faker::name::zh_cn::Name;
-    use fake::{Fake, ResultFaker};
+    use fake::{Fake};
 
     #[test]
     fn test_render() {

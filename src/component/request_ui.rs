@@ -4,6 +4,7 @@ use egui::{Color32, Key, RichText, Ui, Vec2};
 use hdrhistogram::Histogram;
 use reqwest::Client;
 use reqwest::header::{HeaderMap, HeaderName, HeaderValue};
+use std::collections::HashMap;
 use std::hash::Hasher;
 use std::str::FromStr;
 use futures::stream::{self, StreamExt};
@@ -16,14 +17,19 @@ use std::{
 };
 // use egui_extras::{Size, TableBuilder};
 
-use crate::template::rander_template;
+use crate::template::{rander_template, add_global_var};
 #[cfg(not(target_arch = "wasm32"))]
 use reqwest::{Request, Response};
 use serde_json::Value;
 #[cfg(not(target_arch = "wasm32"))]
 use tokio::runtime::{Runtime};
+use minijinja::value::Value as JValue;
 
 use crate::app::{Method, add_notification};
+
+use super::template_tools::{PreRequest, PreResponse, PreHttpTest};
+
+const TEMP_GLOBAL_KEY:&str = "PRE_HTTP";
 
 #[cfg(not(target_arch = "wasm32"))]
 lazy_static! {
@@ -258,20 +264,42 @@ impl Into<Request> for RequestUi {
     }
 }
 
-#[cfg(not(target_arch = "wasm32"))]
-impl Into<reqwest::blocking::Request> for RequestUi {
-    fn into(self) -> reqwest::blocking::Request {
+impl Into<PreRequest> for &RequestUi {
+    fn into(self) -> PreRequest {
         let mth_bytes = self.method.to_string();
-        let mth = reqwest::Method::from_bytes(mth_bytes.as_bytes()).unwrap();
-        let url = reqwest::Url::parse(self.url.as_str()).unwrap();
-        let mut req = reqwest::blocking::Request::new(mth, url);
-        if !self.body.is_empty() {
-            let paser_body = rander_template(self.body.as_str()).unwrap_or(self.body);
-            *req.body_mut() = Some(paser_body.into());
+        let url = self.url.clone();
+
+        let headers = self.headers.inputs.iter()
+                .filter(|slk|slk.selected)
+                .fold(HashMap::new(), |mut headmap,slk|{
+                    let k = slk.key.clone();
+                    let v =slk.value.clone();
+                    headmap.insert(k, v);
+                    headmap
+        });
+        let body:JValue;
+        if let Ok(json_value)= serde_json::from_str::<JValue>(&self.body) {
+            body = json_value;
+        } else {
+            body = JValue::from_serializable(&self.body);
         }
-        req
+        PreRequest { method: mth_bytes, headers, body, url }
     }
 }
+// #[cfg(not(target_arch = "wasm32"))]
+// impl Into<reqwest::blocking::Request> for RequestUi {
+//     fn into(self) -> reqwest::blocking::Request {
+//         let mth_bytes = self.method.to_string();
+//         let mth = reqwest::Method::from_bytes(mth_bytes.as_bytes()).unwrap();
+//         let url = reqwest::Url::parse(self.url.as_str()).unwrap();
+//         let mut req = reqwest::blocking::Request::new(mth, url);
+//         if !self.body.is_empty() {
+//             let paser_body = rander_template(self.body.as_str()).unwrap_or(self.body);
+//             *req.body_mut() = Some(paser_body.into());
+//         }
+//         req
+//     }
+// }
 
 #[derive(Debug, Clone, Default, serde::Deserialize, serde::Serialize)]
 pub struct ResponseUi {
@@ -280,6 +308,29 @@ pub struct ResponseUi {
     size: u64,
     code: u16,
     time: i64,
+}
+
+
+impl Into<PreResponse> for &ResponseUi {
+
+    fn into(self) -> PreResponse {
+        let headers = self.headers.inputs.iter()
+                .filter(|slk|slk.selected)
+                .fold(HashMap::new(), |mut headmap,slk|{
+                    let k = slk.key.clone();
+                    let v =slk.value.clone();
+                    headmap.insert(k, v);
+                    headmap
+        });
+        let code = self.code.to_string();
+        let body:JValue;
+        if let Ok(json_value)= serde_json::from_str::<JValue>(&self.body) {
+            body = json_value;
+        } else {
+            body = JValue::from_serializable(&self.body);
+        }
+        PreResponse { headers, body, code}
+    }
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -306,53 +357,53 @@ impl From<ehttp::Response> for ResponseUi {
     }
 }
 
-#[cfg(not(target_arch = "wasm32"))]
-impl From<reqwest::blocking::Response> for ResponseUi {
+// #[cfg(not(target_arch = "wasm32"))]
+// impl From<reqwest::blocking::Response> for ResponseUi {
 
-    fn from(resp: reqwest::blocking::Response) -> Self {
+//     fn from(resp: reqwest::blocking::Response) -> Self {
 
-        let status = resp.status().as_u16();
-        let mut headers = SelectKeyValueInputs::default();
-        let mut is_json = false;
-        for (key,value) in resp.headers().into_iter() {
-            let mut item = SelectKeyValueItem::new();
-            item.key = key.to_string();
-            item.value = match value.to_str() {
-                Ok(ok) => ok.to_string(),
-                Err(er) => er.to_string(),
-            };
-            if item.key.eq_ignore_ascii_case("content-type") && item.value.contains("application/json") {
-                is_json = true;
-            }
-            headers.inputs.push(item);
-        }
+//         let status = resp.status().as_u16();
+//         let mut headers = SelectKeyValueInputs::default();
+//         let mut is_json = false;
+//         for (key,value) in resp.headers().into_iter() {
+//             let mut item = SelectKeyValueItem::new();
+//             item.key = key.to_string();
+//             item.value = match value.to_str() {
+//                 Ok(ok) => ok.to_string(),
+//                 Err(er) => er.to_string(),
+//             };
+//             if item.key.eq_ignore_ascii_case("content-type") && item.value.contains("application/json") {
+//                 is_json = true;
+//             }
+//             headers.inputs.push(item);
+//         }
 
-        let size = resp.content_length().unwrap_or(0)/1024;
+//         let size = resp.content_length().unwrap_or(0)/1024;
 
-        let body:String= match resp.text(){
-            Ok(body) => {
-                if is_json {
-                    if let Ok(json) = serde_json::from_str::<Value>(body.as_str()) {
-                        serde_json::to_string_pretty(&json).unwrap_or(body)
-                    } else {
-                        body
-                    }
-                } else {
-                    body
-                }
-            },
-            Err(err) => err.to_string(),
-        };
+//         let body:String= match resp.text(){
+//             Ok(body) => {
+//                 if is_json {
+//                     if let Ok(json) = serde_json::from_str::<Value>(body.as_str()) {
+//                         serde_json::to_string_pretty(&json).unwrap_or(body)
+//                     } else {
+//                         body
+//                     }
+//                 } else {
+//                     body
+//                 }
+//             },
+//             Err(err) => err.to_string(),
+//         };
 
-        Self{
-            headers: headers,
-            body: body,
-            size: size,
-            code: status,
-            time: 0,
-        }
-    }
-}
+//         Self{
+//             headers: headers,
+//             body: body,
+//             size: size,
+//             code: status,
+//             time: 0,
+//         }
+//     }
+// }
 
 impl NetTestUi {
     pub fn ui(&mut self, ui: &mut Ui) {
@@ -549,7 +600,7 @@ impl RequestUi {
             let Vec2 { x, y: _ } = ui.available_size();
             ui.set_max_width(x/2.0);
             ui.vertical(|ui| {
-                egui::ScrollArea::vertical()
+                egui::ScrollArea::both()
                     .auto_shrink([false, false])
                     .id_source("requset_ui_scroller_1")
                     .show(ui, |ui| {
@@ -828,8 +879,9 @@ fn send_request(sender: Sender<(usize,i64, ResponseUi)>, req: RequestUi) {
             let start = Local::now().timestamp_millis();
             let respui = RT.block_on(async {
                 let client = reqwest::Client::new();
-
-                let resp = match client.execute(req.into()).await {
+                let pre_req:PreRequest = (&req).into();
+                let send_req:Request = req.into();
+                let resp = match client.execute(send_req).await {
                     Ok(rep) => covert_to_ui(rep).await,
                     Err(err) => ResponseUi {
                         headers: Default::default(),
@@ -839,6 +891,12 @@ fn send_request(sender: Sender<(usize,i64, ResponseUi)>, req: RequestUi) {
                         time: 0,
                     },
                 };
+                let pre_resp:PreResponse = (&resp).into();
+                let pre_http = PreHttpTest {
+                    req: pre_req,
+                    resp: pre_resp,
+                };
+                add_global_var(TEMP_GLOBAL_KEY,JValue::from_serializable(&pre_http));
                 resp
             });
             let end = Local::now().timestamp_millis();

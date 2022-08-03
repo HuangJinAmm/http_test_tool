@@ -29,26 +29,40 @@
    - 菜单按钮中可以将整个小工具的内容序列化保存为同目录下app.json文件,并可直接加载，或者选则其他位置的json文件，此功能用于共享案例。
    
    ![http_test_cvUp7xZPbD.png](./screenshots/http_test_cvUp7xZPbD.png)![http_test_9MngGDPGcr.png](./screenshots/http_test_9MngGDPGcr.png)
-   
-   
 
 2. 动态请求数据生成
    
-   Fake数据生成采用[Jinja模板语法](https://docs.rs/minijinja/latest/minijinja/syntax/index.html)，以及自带一些数据生成函数`Ctrl+q`调出面板。不支持不同测试案例间共享变量，或者从响应中提取变量值。暂且不支持cookie管理。
+   - Fake数据生成采用[Jinja模板语法](https://docs.rs/minijinja/latest/minijinja/syntax/index.html)，以及自带一些数据生成函数`Ctrl+q`调出面板。暂且不支持cookie管理。
    
    ![http_test_9rknSyseb8.gif](./screenshots/http_test_9rknSyseb8.gif)
    
-   base64编码内容示例：
+   - base64编码内容示例：
    
    ![http_test_wCiB9OolND.png](./screenshots/http_test_wCiB9OolND.png)
    
    ![http_test_q60mREH0q0.png](./screenshots/http_test_q60mREH0q0.png)
    
-   AES加密ECB示例
+   - AES加密ECB示例
    
    ![http_test_PF3Y87zIg2.png](./screenshots/http_test_PF3Y87zIg2.png)
    
    ![http_test_AqeNnujrvZ.png](./screenshots/http_test_AqeNnujrvZ.png)
+   
+   - 请求之间的关联变量：`PRE_HTTP`里存储上一个请求的请求(字段`req`表示)和响应数据(`resp`)：
+     
+     已发送的请求
+     
+     ![http_test_sqfEPMawwW.png](./screenshots/http_test_sqfEPMawwW.png)
+     
+     这时候可以用关联变量获取上个请求的内容了
+     
+     ![http_test_GqUWjPkoRM.png](./screenshots/http_test_GqUWjPkoRM.png)
+     
+     下图是预览结果
+     
+     ![http_test_tdtk3SeLuB.png](./screenshots/http_test_tdtk3SeLuB.png)
+     
+     
 
 3. 批量测试
    

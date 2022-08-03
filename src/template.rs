@@ -2,6 +2,7 @@ use std::borrow::BorrowMut;
 use std::sync::{Arc, Mutex};
 
 use chrono::{Local, DateTime, Utc, Duration, TimeZone};
+use minijinja::value::Value;
 use minijinja::{context, Environment, Source};
 use minijinja::{Error, ErrorKind, State};
 
@@ -57,6 +58,7 @@ lazy_static! {
         t_env.add_filter("AesEcbEnc", aes_enc_ecb);
         t_env.add_filter("AesCbcEnc", aes_enc_cbc);
         t_env.add_filter("AesCtrEnc", aes_enc_ctr);
+        t_env.add_filter("INT", to_int);
         let source = Source::new();
         t_env.set_source(source);
         Arc::new(Mutex::new(t_env))
@@ -114,6 +116,12 @@ pub fn rander_template(template: &str) -> Result<String,Error> {
         .render(context!(aaa=>"aaa"))
         .unwrap_or_else(|s| s.to_string());
     Ok(result)
+}
+
+pub fn add_global_var(key:&'static str,value: Value) {
+    if let Ok(mut env) = TEMP_ENV.lock() {
+        env.add_global(key, value)
+    }
 }
 
 fn fake_name_zh(_state: &State<'_, '_>) -> Result<String, Error> {

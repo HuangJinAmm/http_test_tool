@@ -1,8 +1,11 @@
+use std::collections::HashMap;
+
+use minijinja::value::Value;
+
+
 pub struct TemplateHint {
     hint_infos:Vec<TemplateHintInfo>
 }
-
-
 
 impl TemplateHint {
 
@@ -111,4 +114,25 @@ impl TemplateHintInfo {
         }
         false
     }
+}
+
+#[derive(serde::Serialize,serde::Deserialize)]
+pub struct PreHttpTest {
+    pub req:PreRequest,
+    pub resp:PreResponse,
+}
+
+#[derive(serde::Serialize,serde::Deserialize)]
+pub struct PreRequest {
+    pub method:String,
+    pub headers:HashMap<String,String>,
+    pub body:Value,
+    pub url:String,
+}
+
+#[derive(serde::Serialize,serde::Deserialize)]
+pub struct PreResponse {
+    pub headers:HashMap<String,String>,
+    pub body:Value,
+    pub code:String,
 }

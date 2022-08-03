@@ -126,6 +126,7 @@ pub struct PreHttpTest {
 pub struct PreRequest {
     pub method:String,
     pub headers:HashMap<String,String>,
+    pub querys:HashMap<String,String>,
     pub body:Value,
     pub url:String,
 }

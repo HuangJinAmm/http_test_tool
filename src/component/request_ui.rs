@@ -277,13 +277,41 @@ impl Into<PreRequest> for &RequestUi {
                     headmap.insert(k, v);
                     headmap
         });
+        let mut parse_querys = url.as_str();
+        let mut querys_map:HashMap<String,String> = HashMap::new();
+        if let Some(q) = parse_querys.find('?') {
+            if q+1<parse_querys.len(){
+                parse_querys = &parse_querys[q+1..];
+                loop {
+                    let querys;
+                    if parse_querys.is_empty() {
+                        break;
+                    }
+                    if let Some(g) = parse_querys.find('&') {
+                        querys = &parse_querys[..g];
+                        parse_querys = &parse_querys[g+1..];
+                    } else {
+                        querys = parse_querys;
+                        parse_querys="";
+                    }
+                    if !querys.ends_with('=') { 
+                        if let Some(eq_p) = querys.find('=') {
+                        let key = &querys[..eq_p];
+                        let value = &querys[eq_p+1..];
+                        querys_map.insert(key.to_string(), value.to_string());
+                        }
+                    }
+                }
+            }
+        }
+
         let body:JValue;
         if let Ok(json_value)= serde_json::from_str::<JValue>(&self.body) {
             body = json_value;
         } else {
             body = JValue::from_serializable(&self.body);
         }
-        PreRequest { method: mth_bytes, headers, body, url }
+        PreRequest { method: mth_bytes,querys:querys_map, headers, body, url }
     }
 }
 // #[cfg(not(target_arch = "wasm32"))]

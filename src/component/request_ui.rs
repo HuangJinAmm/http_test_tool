@@ -1,13 +1,14 @@
 use chrono::Local;
 use egui::plot::{Bar, BarChart, Legend, Line, Plot, Value as PValue, Values};
-use egui::{Color32, Key, RichText, Ui, Vec2};
+use egui::text::LayoutJob;
+use egui::{Color32, FontId, Key, RichText, TextFormat, Ui, Vec2};
+use futures::stream::{self, StreamExt};
 use hdrhistogram::Histogram;
-use reqwest::Client;
 use reqwest::header::{HeaderMap, HeaderName, HeaderValue};
+use reqwest::Client;
 use std::collections::HashMap;
 use std::hash::Hasher;
 use std::str::FromStr;
-use futures::stream::{self, StreamExt};
 use std::time::Duration;
 use std::{
     collections::hash_map::DefaultHasher,
@@ -17,19 +18,20 @@ use std::{
 };
 // use egui_extras::{Size, TableBuilder};
 
-use crate::template::{rander_template, add_global_var};
+use crate::template::{add_global_var, rander_template};
+use minijinja::value::Value as JValue;
 #[cfg(not(target_arch = "wasm32"))]
 use reqwest::{Request, Response};
 use serde_json::Value;
 #[cfg(not(target_arch = "wasm32"))]
-use tokio::runtime::{Runtime};
-use minijinja::value::Value as JValue;
+use tokio::runtime::Runtime;
 
-use crate::app::{Method, add_notification};
+use crate::app::{add_notification, Method};
 
-use super::template_tools::{PreRequest, PreResponse, PreHttpTest};
+use super::highlight::{highlight, CodeTheme};
+use super::template_tools::{PreHttpTest, PreRequest, PreResponse};
 
-const TEMP_GLOBAL_KEY:&str = "PRE_HTTP";
+const TEMP_GLOBAL_KEY: &str = "PRE_HTTP";
 
 #[cfg(not(target_arch = "wasm32"))]
 lazy_static! {
@@ -160,9 +162,9 @@ pub struct NetTestUi {
     resp: ResponseUi,
     load_test: LoadTest,
     #[serde(skip)]
-    sender: Option<Sender<(usize,i64, ResponseUi)>>,
+    sender: Option<Sender<(usize, i64, ResponseUi)>>,
     #[serde(skip)]
-    reciver: Option<Receiver<(usize,i64, ResponseUi)>>,
+    reciver: Option<Receiver<(usize, i64, ResponseUi)>>,
 }
 
 impl NetTestUi {
@@ -246,21 +248,33 @@ impl Into<Request> for RequestUi {
         let mth = reqwest::Method::from_bytes(mth_bytes.as_bytes()).unwrap();
         let url = reqwest::Url::parse(self.url.as_str()).unwrap();
 
-        let headers = self.headers.inputs.into_iter()
-                .filter(|slk|slk.selected)
-                .fold(HeaderMap::new(), |mut headmap,slk|{
-                    let k = HeaderName::from_str(slk.key.as_str()).unwrap();
-                    let v =HeaderValue::from_str(slk.value.as_str()).unwrap();
-                    headmap.append(k, v);
-                    headmap
-        });
+        let headers = self
+            .headers
+            .inputs
+            .into_iter()
+            .filter(|slk| slk.selected)
+            .fold(HeaderMap::new(), |mut headmap, slk| {
+                let k = HeaderName::from_str(slk.key.as_str()).unwrap();
+                let v: HeaderValue;
+                if slk.value.contains("{{") && slk.value.contains("}}") {
+                    let parsed_temp =
+                        rander_template(&slk.value).unwrap_or_else(|_| slk.value.clone());
+                    v = HeaderValue::from_str(&parsed_temp)
+                        .unwrap_or_else(|_| HeaderValue::from_str("非法的header值").unwrap());
+                } else {
+                    v = HeaderValue::from_str(slk.value.as_str())
+                        .unwrap_or_else(|_| HeaderValue::from_str("非法的header值").unwrap());
+                }
+                headmap.append(k, v);
+                headmap
+            });
         let mut req = Request::new(mth, url);
-        *req.headers_mut() =headers;
+        *req.headers_mut() = headers;
         if !self.body.is_empty() {
             let paser_body = rander_template(self.body.as_str()).unwrap_or(self.body);
             *req.body_mut() = Some(paser_body.into());
         }
-        req
+        dbg!(req)
     }
 }
 
@@ -269,19 +283,20 @@ impl Into<PreRequest> for &RequestUi {
         let mth_bytes = self.method.to_string();
         let url = self.url.clone();
 
-        let headers = self.headers.inputs.iter()
-                .filter(|slk|slk.selected)
-                .fold(HashMap::new(), |mut headmap,slk|{
-                    let k = slk.key.clone();
-                    let v =slk.value.clone();
-                    headmap.insert(k, v);
-                    headmap
-        });
+        let headers = self.headers.inputs.iter().filter(|slk| slk.selected).fold(
+            HashMap::new(),
+            |mut headmap, slk| {
+                let k = slk.key.clone();
+                let v = slk.value.clone();
+                headmap.insert(k, v);
+                headmap
+            },
+        );
         let mut parse_querys = url.as_str();
-        let mut querys_map:HashMap<String,String> = HashMap::new();
+        let mut querys_map: HashMap<String, String> = HashMap::new();
         if let Some(q) = parse_querys.find('?') {
-            if q+1<parse_querys.len(){
-                parse_querys = &parse_querys[q+1..];
+            if q + 1 < parse_querys.len() {
+                parse_querys = &parse_querys[q + 1..];
                 loop {
                     let querys;
                     if parse_querys.is_empty() {
@@ -289,29 +304,35 @@ impl Into<PreRequest> for &RequestUi {
                     }
                     if let Some(g) = parse_querys.find('&') {
                         querys = &parse_querys[..g];
-                        parse_querys = &parse_querys[g+1..];
+                        parse_querys = &parse_querys[g + 1..];
                     } else {
                         querys = parse_querys;
-                        parse_querys="";
+                        parse_querys = "";
                     }
-                    if !querys.ends_with('=') { 
+                    if !querys.ends_with('=') {
                         if let Some(eq_p) = querys.find('=') {
-                        let key = &querys[..eq_p];
-                        let value = &querys[eq_p+1..];
-                        querys_map.insert(key.to_string(), value.to_string());
+                            let key = &querys[..eq_p];
+                            let value = &querys[eq_p + 1..];
+                            querys_map.insert(key.to_string(), value.to_string());
                         }
                     }
                 }
             }
         }
 
-        let body:JValue;
-        if let Ok(json_value)= serde_json::from_str::<JValue>(&self.body) {
+        let body: JValue;
+        if let Ok(json_value) = serde_json::from_str::<JValue>(&self.body) {
             body = json_value;
         } else {
             body = JValue::from_serializable(&self.body);
         }
-        PreRequest { method: mth_bytes,querys:querys_map, headers, body, url }
+        PreRequest {
+            method: mth_bytes,
+            querys: querys_map,
+            headers,
+            body,
+            url,
+        }
     }
 }
 // #[cfg(not(target_arch = "wasm32"))]
@@ -338,26 +359,29 @@ pub struct ResponseUi {
     time: i64,
 }
 
-
 impl Into<PreResponse> for &ResponseUi {
-
     fn into(self) -> PreResponse {
-        let headers = self.headers.inputs.iter()
-                .filter(|slk|slk.selected)
-                .fold(HashMap::new(), |mut headmap,slk|{
-                    let k = slk.key.clone();
-                    let v =slk.value.clone();
-                    headmap.insert(k, v);
-                    headmap
-        });
+        let headers = self.headers.inputs.iter().filter(|slk| slk.selected).fold(
+            HashMap::new(),
+            |mut headmap, slk| {
+                let k = slk.key.clone();
+                let v = slk.value.clone();
+                headmap.insert(k, v);
+                headmap
+            },
+        );
         let code = self.code.to_string();
-        let body:JValue;
-        if let Ok(json_value)= serde_json::from_str::<JValue>(&self.body) {
+        let body: JValue;
+        if let Ok(json_value) = serde_json::from_str::<JValue>(&self.body) {
             body = json_value;
         } else {
             body = JValue::from_serializable(&self.body);
         }
-        PreResponse { headers, body, code}
+        PreResponse {
+            headers,
+            body,
+            code,
+        }
     }
 }
 
@@ -498,7 +522,7 @@ impl NetTestUi {
                                 self.load_test.result.error = self.load_test.result.error + 1.0;
                             }
                             // self.load_test.result_list.insert(s.0, s.1);
-                            let _addto = self.load_test.result_list.get_mut(s.0).map(|r|*r=s.1);
+                            let _addto = self.load_test.result_list.get_mut(s.0).map(|r| *r = s.1);
                             self.load_test.process = self.load_test.result_list.len() as f32
                                 / self.load_test.total() as f32;
                             let time = s.1 as u64;
@@ -509,7 +533,8 @@ impl NetTestUi {
                                 .result_hist
                                 .as_mut()
                                 .unwrap()
-                                .record(time).unwrap();
+                                .record(time)
+                                .unwrap();
                         }
                     }
                     None => {}
@@ -626,7 +651,7 @@ impl RequestUi {
     pub fn ui(&mut self, ui: &mut Ui) {
         ui.group(|ui| {
             let Vec2 { x, y: _ } = ui.available_size();
-            ui.set_max_width(x/2.0);
+            ui.set_max_width(x / 2.0);
             ui.vertical(|ui| {
                 egui::ScrollArea::both()
                     .auto_shrink([false, false])
@@ -679,7 +704,10 @@ impl RequestUi {
                                         if show_plaintext {
                                             match rander_template(self.body.as_str()) {
                                                 Ok(parsed_temp) => template_str = parsed_temp,
-                                                Err(e) => add_notification(ui.ctx(), e.to_string().as_str()),
+                                                Err(e) => add_notification(
+                                                    ui.ctx(),
+                                                    e.to_string().as_str(),
+                                                ),
                                             }
                                         }
                                     }
@@ -688,14 +716,14 @@ impl RequestUi {
                                 }
                                 if ui.toggle_value(&mut show_plaintext, "预览").clicked() {
                                     if show_plaintext {
-                                            match rander_template(self.body.as_str()) {
-                                                Ok(parsed_temp) => template_str = parsed_temp,
-                                                Err(e) =>{
-                                                    let mut msg = "模板语法错误：".to_string();
-                                                    msg.push_str(e.to_string().as_str());
-                                                    add_notification(ui.ctx(), msg.as_str());
-                                                } ,
+                                        match rander_template(self.body.as_str()) {
+                                            Ok(parsed_temp) => template_str = parsed_temp,
+                                            Err(e) => {
+                                                let mut msg = "模板语法错误：".to_string();
+                                                msg.push_str(e.to_string().as_str());
+                                                add_notification(ui.ctx(), msg.as_str());
                                             }
+                                        }
                                     }
                                 }
                                 if ui.button("格式化JSON").clicked() {
@@ -786,11 +814,11 @@ impl SelectKeyValueInputs {
                     ui.add_sized(ui.available_size(), egui::widgets::Label::new(""));
                     ui.add_sized(
                         [120., 20.],
-                        egui::widgets::Label::new(egui::RichText::new("Key").strong()),
+                        egui::widgets::Label::new(egui::RichText::new("键").strong()),
                     );
                     ui.add_sized(
                         ui.available_size(),
-                        egui::widgets::Label::new(egui::RichText::new("Value").strong()),
+                        egui::widgets::Label::new(egui::RichText::new("值").strong()),
                     );
                     ui.end_row();
                     for SelectKeyValueItem {
@@ -800,19 +828,29 @@ impl SelectKeyValueInputs {
                     } in &mut self.inputs
                     {
                         ui.checkbox(selected, "");
+
+                        let theme = CodeTheme::from_memory(ui.ctx());
+
+                        let mut layouter = |ui: &egui::Ui, string: &str, _wrap_width: f32| {
+                            let layout_job = highlight(ui.ctx(), &theme, string, "json");
+                            // layout_job.wrap.max_width = wrap_width; // no wrapping
+                            ui.fonts().layout_job(layout_job)
+                        };
                         ui.add_sized(
                             ui.available_size(),
                             egui::text_edit::TextEdit::singleline(key),
                         );
                         ui.add_sized(
                             ui.available_size(),
-                            egui::text_edit::TextEdit::singleline(value),
+                            egui::text_edit::TextEdit::singleline(value).layouter(&mut layouter),
                         );
                         ui.end_row();
                     }
                 });
         });
     }
+
+
     pub fn ui_grid(&mut self, ui: &mut Ui, id: &str) {
         ui.group(|ui| {
             egui::Grid::new(id)
@@ -900,15 +938,15 @@ pub fn editable_label(ui: &mut egui::Ui, is_edit: &mut bool, value: &mut String)
 }
 
 // #[cfg(not(target_arch = "wasm32"))]
-fn send_request(sender: Sender<(usize,i64, ResponseUi)>, req: RequestUi) {
+fn send_request(sender: Sender<(usize, i64, ResponseUi)>, req: RequestUi) {
     thread::Builder::new()
         .name("send_req_thread".to_string())
         .spawn(move || {
             let start = Local::now().timestamp_millis();
             let respui = RT.block_on(async {
                 let client = reqwest::Client::new();
-                let pre_req:PreRequest = (&req).into();
-                let send_req:Request = req.into();
+                let pre_req: PreRequest = (&req).into();
+                let send_req: Request = req.into();
                 let resp = match client.execute(send_req).await {
                     Ok(rep) => covert_to_ui(rep).await,
                     Err(err) => ResponseUi {
@@ -919,17 +957,17 @@ fn send_request(sender: Sender<(usize,i64, ResponseUi)>, req: RequestUi) {
                         time: 0,
                     },
                 };
-                let pre_resp:PreResponse = (&resp).into();
+                let pre_resp: PreResponse = (&resp).into();
                 let pre_http = PreHttpTest {
                     req: pre_req,
                     resp: pre_resp,
                 };
-                add_global_var(TEMP_GLOBAL_KEY,JValue::from_serializable(&pre_http));
+                add_global_var(TEMP_GLOBAL_KEY, JValue::from_serializable(&pre_http));
                 resp
             });
             let end = Local::now().timestamp_millis();
             let now = end - start;
-            sender.send((1,now, respui)).unwrap();
+            sender.send((1, now, respui)).unwrap();
         })
         .unwrap();
 }
@@ -1000,15 +1038,18 @@ async fn covert_to_ui(rep: Response) -> ResponseUi {
 //         }
 //     }
 // }
-async fn send_load_test_request(sender: Sender<(usize,i64, ResponseUi)>,client:Client, ireq: (usize,Request)) {
-
+async fn send_load_test_request(
+    sender: Sender<(usize, i64, ResponseUi)>,
+    client: Client,
+    ireq: (usize, Request),
+) {
     let start = Local::now().timestamp_millis();
-    let (index,req) = ireq;
+    let (index, req) = ireq;
     match client.execute(req).await {
         Ok(rep) => {
             let end = Local::now().timestamp_millis();
             let resp_ui = covert_to_ui(rep).await;
-            sender.send((index,end - start, resp_ui)).unwrap();
+            sender.send((index, end - start, resp_ui)).unwrap();
         }
         Err(err) => {
             let resp_ui = ResponseUi {
@@ -1019,14 +1060,14 @@ async fn send_load_test_request(sender: Sender<(usize,i64, ResponseUi)>,client:C
                 time: 0,
             };
             let end = Local::now().timestamp_millis();
-            sender.send((index,end - start, resp_ui)).unwrap();
+            sender.send((index, end - start, resp_ui)).unwrap();
         }
     }
 }
 
 // fn send_load_test_request_per_sender(sender: Sender<(i64, ResponseUi)>, req: reqwest::blocking::Request) {
 //     thread::Builder::new().name("load_test_thread".into()).spawn(move ||{
-//             let client = reqwest::blocking::Client::new();       
+//             let client = reqwest::blocking::Client::new();
 //             let start = Local::now().timestamp_millis();
 //             match client.execute(req) {
 //                 Ok(rep) => {
@@ -1119,18 +1160,23 @@ async fn send_load_test_request(sender: Sender<(usize,i64, ResponseUi)>,client:C
 //     let _ = sender.send((-1, ResponseUi::default()));;
 // }
 
-fn start_load_test_multisender(sender:Sender<(usize,i64, ResponseUi)>, times: u16, reqs: u32, req: RequestUi) {
+fn start_load_test_multisender(
+    sender: Sender<(usize, i64, ResponseUi)>,
+    times: u16,
+    reqs: u32,
+    req: RequestUi,
+) {
     thread::Builder::new()
         .name("send_req_thread".to_string())
         .spawn(move || {
             let capacity: usize = (times as usize) * (reqs as usize);
-            let mut sender_requsets: Vec<(usize,Request)> = Vec::with_capacity(capacity);
+            let mut sender_requsets: Vec<(usize, Request)> = Vec::with_capacity(capacity);
             for i in 0..capacity {
                 let body = req.body.clone();
                 let rander_body = rander_template(body.as_str()).unwrap_or(body);
                 let mut req_clone = req.clone();
                 req_clone.body = rander_body;
-                sender_requsets.push((i ,req_clone.into()));
+                sender_requsets.push((i, req_clone.into()));
             }
             sender_requsets.reverse();
             let client = reqwest::Client::new();
@@ -1141,7 +1187,7 @@ fn start_load_test_multisender(sender:Sender<(usize,i64, ResponseUi)>, times: u1
                     let mut f_vec = Vec::new();
                     for _ in 0..reqs {
                         let req = sender_requsets.pop().unwrap();
-                        let f = send_load_test_request(sender.clone(),client.clone(),req);
+                        let f = send_load_test_request(sender.clone(), client.clone(), req);
                         // let _tf = tokio::task::spawn(f);
                         f_vec.push(f);
                     }
@@ -1151,16 +1197,16 @@ fn start_load_test_multisender(sender:Sender<(usize,i64, ResponseUi)>, times: u1
                     //                         .collect::<Vec<_>>().await;
                     let _tf = tokio::spawn(
                         stream::iter(f_vec)
-                                                .buffered(reqs as usize)
-                                                .collect::<Vec<_>>()
+                            .buffered(reqs as usize)
+                            .collect::<Vec<_>>(),
                     );
                     let duration = start.elapsed().unwrap().as_millis() as u64;
-                    if duration<1000 {
-                        tokio::time::sleep(Duration::from_millis(1000-duration)).await;
+                    if duration < 1000 {
+                        tokio::time::sleep(Duration::from_millis(1000 - duration)).await;
                     }
                 }
                 //发送一个完成的数据
-                sender.send((0,-1, ResponseUi::default()))
+                sender.send((0, -1, ResponseUi::default()))
             });
         })
         .unwrap();

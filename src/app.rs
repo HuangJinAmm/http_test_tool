@@ -1,11 +1,12 @@
 use std::collections::{BTreeMap};
 use std::io::BufReader;
 use std::str::FromStr;
+use std::sync::Arc;
 use std::sync::mpsc::{Receiver};
 
 
 
-use egui::{FontData, FontDefinitions, Id, Label};
+use egui::{FontData, FontDefinitions, Id, Label, TextStyle};
 
 // use egui_extras::{Size, StripBuilder, TableBuilder};
 use serde::{Deserialize, Serialize};
@@ -231,12 +232,16 @@ impl TemplateApp {
 
         cc.egui_ctx.set_fonts(fonts);
 
+
         // Load previous app state (if any).
         // Note that you must enable the `persistence` feature for this to work.
 
         let notice_id = NOTIFICATION_ID.clone();
         let notice_vec: Vec<(i64, String)> = Vec::new();
         cc.egui_ctx.data().insert_temp(notice_id, notice_vec);
+
+
+
         if let Some(storage) = cc.storage {
             let mut app: TemplateApp = eframe::get_value(storage, APP_KEY).unwrap_or_default();
             app.is_exiting = false;
@@ -312,26 +317,26 @@ impl eframe::App for TemplateApp {
         // Pick whichever suits you.
         // Tip: a good default choice is to just keep the `CentralPanel`.
         // For inspiration and more examples, go to https://emilk.github.io/egui
-        if !ctx.input().raw.dropped_files.is_empty() {
-            let dropped_files = ctx.input().raw.dropped_files.clone();
-            for file in dropped_files {
-                if let Some(file_p) = file.path {
-                    if file_p.ends_with("json") {
-                        if let Some(bytes) = file.bytes {
-                            let slice_bytes = bytes.as_ref();
-                            let mut app: TemplateApp = serde_json::from_slice(slice_bytes).unwrap();
-                            app.records.iter_mut().for_each(|(_, netUI)| {
-                                netUI.add_mpsc();
-                            });
-                            self.records = app.records;
-                            self.records_list = app.records_list;
-                            self.list_selected = app.list_selected;
-                            self.list_selected_str = app.list_selected_str;
-                        }
-                    }
-                }
-            }
-        }
+        // if !ctx.input().raw.dropped_files.is_empty() {
+        //     let dropped_files = ctx.input().raw.dropped_files.clone();
+        //     for file in dropped_files {
+        //         if let Some(file_p) = file.path {
+        //             if file_p.ends_with("json") {
+        //                 if let Some(bytes) = file.bytes {
+        //                     let slice_bytes = bytes.as_ref();
+        //                     let mut app: TemplateApp = serde_json::from_slice(slice_bytes).unwrap();
+        //                     app.records.iter_mut().for_each(|(_, netUI)| {
+        //                         netUI.add_mpsc();
+        //                     });
+        //                     self.records = app.records;
+        //                     self.records_list = app.records_list;
+        //                     self.list_selected = app.list_selected;
+        //                     self.list_selected_str = app.list_selected_str;
+        //                 }
+        //             }
+        //         }
+        //     }
+        // }
 
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             // The top panel is often a good place for a menu bar:

@@ -463,110 +463,103 @@ impl NetTestUi {
         editable_label(ui, &mut self.isEdit, &mut self.remark);
 
         ui.horizontal_wrapped(|ui| {
-            let send = ui.button("发送💨");
-            if send.clicked() {
-                self.issend = !self.issend;
-                //发送请求
-                match self.test_type {
-                    TestType::Req => {
-                        let sender_clone = self.sender.clone();
-                        let req = self.req.clone();
 
-                        if let Some(sender) = sender_clone {
-                            send_request(sender, req);
+            ui.with_layout(egui::Layout::left_to_right(), |ui| {
+                let send = ui.button("发送💨");
+                if send.clicked() {
+                    self.issend = !self.issend;
+                    //发送请求
+                    match self.test_type {
+                        TestType::Req => {
+                            let sender_clone = self.sender.clone();
+                            let req = self.req.clone();
+
+                            if let Some(sender) = sender_clone {
+                                send_request(sender, req);
+                            }
                         }
-                    }
-                    TestType::Load => {
-                        let times = self.load_test.time;
-                        let reqs = self.load_test.reqs;
-                        let t = times as usize * reqs as usize;
-                        self.load_test.process = 0.0;
-                        self.load_test.result_list = vec![0].repeat(t);
-                        self.load_test.result = LoadTestResult::default();
-                        let requset = self.req.clone();
-                        let sender_clone = self.sender.clone();
-                        if let Some(sender) = sender_clone {
-                            start_load_test_multisender(sender, times, reqs, requset);
+                        TestType::Load => {
+                            let times = self.load_test.time;
+                            let reqs = self.load_test.reqs;
+                            let t = times as usize * reqs as usize;
+                            self.load_test.process = 0.0;
+                            self.load_test.result_list = vec![0].repeat(t);
+                            self.load_test.result = LoadTestResult::default();
+                            let requset = self.req.clone();
+                            let sender_clone = self.sender.clone();
+                            if let Some(sender) = sender_clone {
+                                start_load_test_multisender(sender, times, reqs, requset);
+                            }
                         }
                     }
                 }
-            }
-            //接收请求
-            match self.test_type {
-                TestType::Req => match self.reciver.as_ref() {
-                    Some(rspui) => {
-                        match rspui.try_recv() {
-                            Ok(s) => {
-                                ui.ctx().request_repaint();
-                                self.resp = s.2;
-                                let time = s.1;
-                                self.resp.time = time;
-                                self.issend = false;
-                            }
-                            Err(_) => {}
-                        };
-                    }
-                    None => {}
-                },
-                TestType::Load => match self.reciver.as_ref() {
-                    Some(rspui) => {
-                        ui.ctx().request_repaint();
-                        let mut rs_iter = rspui.try_iter();
-                        while let Some(s) = rs_iter.next() {
-                            if s.1 == -1 {
-                                self.issend = false;
-                                self.load_test.process = 1.0;
-                                break;
-                            }
-                            if s.2.code > 500 {
-                                self.load_test.result.error = self.load_test.result.error + 1.0;
-                            }
-                            // self.load_test.result_list.insert(s.0, s.1);
-                            let _addto = self.load_test.result_list.get_mut(s.0).map(|r| *r = s.1);
-                            self.load_test.process = self.load_test.result_list.len() as f32
-                                / self.load_test.total() as f32;
-                            let time = s.1 as u64;
-                            self.load_test.result.recived =
-                                self.load_test.result.recived + s.2.size as f32;
-                            self.load_test
-                                .result
-                                .result_hist
-                                .as_mut()
-                                .unwrap()
-                                .record(time)
-                                .unwrap();
+                //接收请求
+                match self.test_type {
+                    TestType::Req => match self.reciver.as_ref() {
+                        Some(rspui) => {
+                            match rspui.try_recv() {
+                                Ok(s) => {
+                                    ui.ctx().request_repaint();
+                                    self.resp = s.2;
+                                    let time = s.1;
+                                    self.resp.time = time;
+                                    self.issend = false;
+                                }
+                                Err(_) => {}
+                            };
                         }
-                    }
-                    None => {}
-                },
-            }
+                        None => {}
+                    },
+                    TestType::Load => match self.reciver.as_ref() {
+                        Some(rspui) => {
+                            ui.ctx().request_repaint();
+                            let mut rs_iter = rspui.try_iter();
+                            while let Some(s) = rs_iter.next() {
+                                if s.1 == -1 {
+                                    self.issend = false;
+                                    self.load_test.process = 1.0;
+                                    break;
+                                }
+                                if s.2.code > 500 {
+                                    self.load_test.result.error = self.load_test.result.error + 1.0;
+                                }
+                                // self.load_test.result_list.insert(s.0, s.1);
+                                let _addto = self.load_test.result_list.get_mut(s.0).map(|r| *r = s.1);
+                                self.load_test.process = self.load_test.result_list.len() as f32
+                                    / self.load_test.total() as f32;
+                                let time = s.1 as u64;
+                                self.load_test.result.recived =
+                                    self.load_test.result.recived + s.2.size as f32;
+                                self.load_test
+                                    .result
+                                    .result_hist
+                                    .as_mut()
+                                    .unwrap()
+                                    .record(time)
+                                    .unwrap();
+                            }
+                        }
+                        None => {}
+                    },
+                }
 
-            egui::ComboBox::from_label("🌐")
-                .selected_text(format!("{:?}", &mut self.req.method))
-                .show_ui(ui, |ui| {
-                    ui.selectable_value(&mut self.req.method, Method::GET, "GET");
-                    ui.selectable_value(&mut self.req.method, Method::POST, "POST");
-                    ui.selectable_value(&mut self.req.method, Method::PUT, "PUT");
-                    ui.selectable_value(&mut self.req.method, Method::DELETE, "DELETE");
-                    ui.selectable_value(&mut self.req.method, Method::PATCH, "PATCH");
-                    ui.selectable_value(&mut self.req.method, Method::OPTIONS, "OPTIONS");
-                });
-            ui.text_edit_singleline(&mut self.req.url)
-                .on_hover_text("请求路径");
-            if self.issend {
-                ui.spinner();
-            }
-            ui.with_layout(egui::Layout::right_to_left(), |ui| {
-                // if self.resp.size > 0 {
-                ui.label("KB");
-                ui.label(self.resp.size.to_string());
-                ui.label("响应大小：");
-                // }
-                // if self.resp.time > 0 {
-                ui.label("毫秒");
-                ui.label(self.resp.time.to_string());
-                ui.label("响应时间：");
-                // }
+                egui::ComboBox::from_label("🌐")
+                    .selected_text(format!("{:?}", &mut self.req.method))
+                    .show_ui(ui, |ui| {
+                        ui.selectable_value(&mut self.req.method, Method::GET, "GET");
+                        ui.selectable_value(&mut self.req.method, Method::POST, "POST");
+                        ui.selectable_value(&mut self.req.method, Method::PUT, "PUT");
+                        ui.selectable_value(&mut self.req.method, Method::DELETE, "DELETE");
+                        ui.selectable_value(&mut self.req.method, Method::PATCH, "PATCH");
+                        ui.selectable_value(&mut self.req.method, Method::OPTIONS, "OPTIONS");
+                    });
+                egui::TextEdit::singleline(&mut self.req.url).desired_width(ui.available_width()-350.0).hint_text("请求路径").show(ui);
+                // ui.text_edit_singleline(&mut self.req.url)
+                //     .on_hover_text("请求路径");
+                if self.issend {
+                    ui.spinner();
+                }
+                ui.label("响应状态码：");
                 let code_rich_text = match self.resp.code {
                     x if x >= 100 && x < 200 => RichText::new(x.to_string()).color(Color32::YELLOW),
                     x if x >= 200 && x < 400 => RichText::new(x.to_string()).color(Color32::GREEN),
@@ -574,7 +567,12 @@ impl NetTestUi {
                     _ => RichText::new(""),
                 };
                 ui.label(code_rich_text);
-                ui.label("响应状态码：")
+                ui.label("响应时间：");
+                ui.label(self.resp.time.to_string());
+                ui.label("毫秒");
+                ui.label("响应大小：");
+                ui.label(self.resp.size.to_string());
+                ui.label("KB");
             });
             ui.end_row();
         });

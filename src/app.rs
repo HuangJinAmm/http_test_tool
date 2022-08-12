@@ -374,13 +374,21 @@ impl eframe::App for TemplateApp {
                     if ui.button("保存为json文件").clicked() {
                         let app_json = std::fs::File::open("app.json")
                             .unwrap_or_else(|_err| std::fs::File::create("app.json").unwrap());
-                        serde_json::to_writer_pretty(app_json, self);
-                        rfd::MessageDialog::new()
-                            .set_level(rfd::MessageLevel::Info)
-                            .set_buttons(rfd::MessageButtons::Ok)
-                            .set_description("已将app信息保存app同路径下的app.json文件中")
-                            .set_title("保存文件")
-                            .show();
+                        if let Err(err) = serde_json::to_writer_pretty(app_json, self) {
+                            rfd::MessageDialog::new()
+                                .set_level(rfd::MessageLevel::Error)
+                                .set_buttons(rfd::MessageButtons::Ok)
+                                .set_description(format!("app.json读取错误:{}",err.to_string()).as_str())
+                                .set_title("读取文件错误")
+                                .show();
+                        } else {
+                            rfd::MessageDialog::new()
+                                .set_level(rfd::MessageLevel::Info)
+                                .set_buttons(rfd::MessageButtons::Ok)
+                                .set_description("已将app信息保存app同路径下的app.json文件中")
+                                .set_title("保存文件")
+                                .show();
+                        }
                     }
 
                     if ui.button("选择json文件…").clicked() {

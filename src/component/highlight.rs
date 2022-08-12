@@ -31,8 +31,9 @@ lazy_static! {
 
         tmh.add(TemplateHintInfo::new("NOW".into(), "生成当前时间,需要送日期格式化字符串".into(),r#"{{NOW("%Y-%m-%dT%H:%M:%S")}}"#.into()));
         tmh.add(TemplateHintInfo::new("DATE".into(), "随机日期时间,需要送日期格式化字符串".into(),r#"{{DATE("%Y-%m-%dT%H:%M:%S")}}"#.into()));
-        tmh.add(TemplateHintInfo::new("DATE_BEFORE".into(), "随机生成指定日期前的时间,需要送日期格式化字符串".into(),r#"{{DATE_BEFORE("%Y-%m-%dT%H:%M:%S","2020-01-01T00:00:00")}}"#.into()));
-        tmh.add(TemplateHintInfo::new("DATE_AFTER".into(), "随机生成指定日期后的时间,需要送日期格式化字符串".into(),r#"{{DATE_AFTER("%Y-%m-%dT%H:%M:%S","2020-01-01T00:00:00")}}"#.into()));
+        tmh.add(TemplateHintInfo::new("DATE_BEFORE".into(), "随机生成指定日期前的时间,需要送日期格式化字符串".into(),r#"{{DATE_BEFORE('%Y-%m-%dT%H:%M:%S','2020-01-01T00:00:00')}}"#.into()));
+        tmh.add(TemplateHintInfo::new("DATE_AFTER".into(), "随机生成指定日期后的时间,需要送日期格式化字符串".into(),r#"{{DATE_AFTER('%Y-%m-%dT%H:%M:%S','2020-01-01T00:00:00')}}"#.into()));
+        tmh.add(TemplateHintInfo::new("DATE_ADD".into(), "日期增减操作".into(),r#"{{DATE_ADD('秒数','2020-01-01T00:00:00','%Y-%m-%dT%H:%M:%S')}}"#.into()));
 
         tmh.add(TemplateHintInfo::new("BASE64编码".into(), "BASE64编码".into(),r#"{{BASE64_EN(字符串)}}"#.into()));
         tmh.add(TemplateHintInfo::new("BASE64解码".into(), "BASE64解码".into(),r#"{{BASE64_DE(字符串)}}"#.into()));

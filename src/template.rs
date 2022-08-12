@@ -43,6 +43,7 @@ lazy_static! {
         t_env.add_function("DATE_BEFORE", fake_datetime_before);
         t_env.add_function("DATE_AFTER", fake_datetime_after);
         t_env.add_function("DATE",fake_datetime);
+        t_env.add_function("DATE_ADD",fake_date_add);
 
         t_env.add_function("AES_ECB_EN", aes_enc_ecb);
         t_env.add_function("AES_ECB_DE", aes_dec_ecb);
@@ -270,6 +271,25 @@ fn fake_date_between(_state: &State<'_, '_>,fmt:&str,start:DateTime<Utc>,end:Dat
     Ok(d.format(fmt).to_string())
 }
 
+fn fake_date_add(_state: &State<'_, '_>,duration:i64,date:Option<String>,fmt:Option<String>) -> Result<String, Error> {
+    let fmt = match fmt {
+        Some(f) => f,
+        None => "%Y-%m-%dT%H:%M:%S".to_owned(),
+    };
+    let dura = Duration::seconds(duration);
+    let local = if let Some(date_str) = date {
+        if let Ok(start) = Local.datetime_from_str(date_str.as_str(), "%Y-%m-%dT%H:%M:%S") {
+            start
+        } else {
+            Local::now()
+        }
+    } else {
+        Local::now()
+    };
+    let fake_date = local.checked_add_signed(dura).unwrap();
+    let fmt_data =fake_date.format(fmt.as_str());
+    Ok(fmt_data.to_string())
+}
 
 
 #[cfg(test)]
@@ -327,6 +347,8 @@ mod tests {
         // println!("{}",f);
         // let f:String = fake::faker::lorem::zh_cn::Sentence(10..20).fake();
         // println!("{}",f);
+        let f:String = fake::faker::lorem::en::Paragraph(100..200).fake();
+        println!("{}",f);
         // let f:String = fake::faker::job::zh_cn::Title().fake();
         // println!("{}",f);
         // let f:String = fake::faker::job::zh_cn::Field().fake();
@@ -352,26 +374,24 @@ mod tests {
         // let f: u16 = (1000..10000).fake();
         // let f = uuid::Uuid::new_v4(); 
         // println!("{}", f);
-        let local = Local::now();
-        println!("{}", local);
-        println!("{}", local.format("%Y%m%d"));
-        println!("{}", local.timestamp_millis());
+        // let local = Local::now();
+        // println!("{}", local);
+        // println!("{}", local.format("%Y%m%d"));
+        // println!("{}", local.timestamp_millis());
 
-        let _d = "2014-11-28T00:00:00Z".parse::<DateTime<Local>>().unwrap();
-        let d = Utc.datetime_from_str("2014-11-28 00:00:00", "%Y-%m-%d %H:%M:%S").unwrap();
-        println!("{}", d);
-
-
-        let f:String = fake::faker::chrono::zh_cn::Date().fake();
-        println!("{}", f);
-        let f:String = fake::faker::chrono::zh_cn::DateTime().fake();
-        println!("{}", f);
-        let f:String = fake::faker::chrono::en::DateTime().fake();
-        println!("{}", f);
-        let f:String = fake::uuid::UUIDv4.fake();
-        println!("{}", f);
+        // let _d = "2014-11-28T00:00:00Z".parse::<DateTime<Local>>().unwrap();
+        // let d = Utc.datetime_from_str("2014-11-28 00:00:00", "%Y-%m-%d %H:%M:%S").unwrap();
+        // println!("{}", d);
 
 
+        // let f:String = fake::faker::chrono::zh_cn::Date().fake();
+        // println!("{}", f);
+        // let f:String = fake::faker::chrono::zh_cn::DateTime().fake();
+        // println!("{}", f);
+        // let f:String = fake::faker::chrono::en::DateTime().fake();
+        // println!("{}", f);
+        // let f:String = fake::uuid::UUIDv4.fake();
+        // println!("{}", f);
     }
 
     fn parens(input: &str) -> IResult<&str, &str> {

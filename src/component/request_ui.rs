@@ -1,5 +1,5 @@
 use chrono::Local;
-use egui::plot::{Bar, BarChart, Legend, Line, Plot, Value as PValue, Values};
+use egui::plot::{Bar, BarChart, Legend, Line, Plot };
 use egui::text::LayoutJob;
 use egui::{Color32, FontId, Key, RichText, TextFormat, Ui, Vec2};
 use futures::stream::{self, StreamExt};
@@ -97,7 +97,7 @@ impl Default for LoadTestResult {
 impl LoadTestResult {
     pub fn ui(&mut self, ui: &mut Ui) {
         ui.group(|ui| {
-            ui.with_layout(egui::Layout::left_to_right(), |ui| {
+            ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
                 // ui.horizontal_centered(|ui|{
                 let result = self.result_hist.as_ref().unwrap();
                 ui.label("总共请求数量：");
@@ -464,7 +464,7 @@ impl NetTestUi {
 
         ui.horizontal_wrapped(|ui| {
 
-            ui.with_layout(egui::Layout::left_to_right(), |ui| {
+            ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
                 let send = ui.button("发送💨");
                 if send.clicked() {
                     self.issend = !self.issend;
@@ -583,7 +583,7 @@ impl NetTestUi {
         });
 
         if self.test_type == TestType::Req {
-            ui.with_layout(egui::Layout::left_to_right(), |ui| {
+            ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
                 self.req.ui(ui);
                 self.resp.ui(ui);
             });
@@ -613,8 +613,8 @@ impl NetTestUi {
                     let sin = show_plot
                         .iter()
                         .enumerate()
-                        .map(|(x, y)| PValue::new(x as f64, *y as f64));
-                    let line = Line::new(Values::from_values_iter(sin));
+                        .map(|(x, y)| [x as f64, *y as f64]);
+                    let line = Line::new(egui::plot::PlotPoints::from_iter(sin));
                     Plot::new("runing")
                         .data_aspect(1.0)
                         .show(ui, |plot_ui| plot_ui.line(line));
@@ -696,7 +696,7 @@ impl RequestUi {
                         };
                         ui.horizontal(|ui| {
                             ui.label("请求体：");
-                            ui.with_layout(egui::Layout::right_to_left(), |ui| {
+                            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                                 if show_plaintext {
                                     if ui.button("🔃").clicked() {
                                         if show_plaintext {

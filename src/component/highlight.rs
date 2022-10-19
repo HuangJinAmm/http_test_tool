@@ -80,7 +80,7 @@ pub fn code_editor_ui(ui: &mut egui::Ui, code: &mut String, language: &str) {
         // layout_job.wrap.max_width = wrap_width; // no wrapping
         ui.fonts().layout_job(layout_job)
     };
-    ui.with_layout(egui::Layout::left_to_right(),|ui|{
+    ui.with_layout(egui::Layout::left_to_right(egui::Align::Max),|ui|{
 
     egui::ScrollArea::horizontal()
         .auto_shrink([false, false])

@@ -1,22 +1,8 @@
-pub mod context_list;
-pub mod highlight;
-pub mod password;
-pub mod pop_windows;
-pub mod request_ui;
+pub mod code_editor;
 pub mod toggle;
-pub mod template_tools;
-
-pub use password::password;
-pub use toggle::toggle;
-
-#[cfg(test)]
-mod tests {
-    
-    use chrono::Local;
-
-    #[test]
-    fn test_chrono() {
-        let now = Local::now();
-        println!("{}", now.timestamp_millis());
-    }
-}
+// pub mod dock_tab;
+pub mod editeable_label;
+pub mod header_ui;
+pub mod password;
+pub mod syntax_highlight;
+pub mod tree_ui;

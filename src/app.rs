@@ -1,213 +1,107 @@
-use std::collections::{BTreeMap};
-use std::io::BufReader;
-use std::str::FromStr;
-use std::sync::Arc;
-use std::sync::mpsc::{Receiver};
+use crate::{
+    api_context::{ ApiContext, ApiTester, CollectionsData},
+    component::tree_ui::{self, TreeUi},
+    request_data::{covert_to_ui, PreHttpTest, PreRequest, PreResponse, RequestData, ResponseData},
+    utils::{
+        // rhai_script::ScriptEngine,
+        template::add_global_var,
+    },
+};
+use chrono::Local;
+use egui::{
+    global_dark_light_mode_switch, Color32, FontData, FontDefinitions, Frame, Id,
+    Window,
+};
+use egui_dock::{DockArea, Style, Tree};
+use egui_file::{DialogType, FileDialog};
+use egui_notify::Toasts;
+use futures::StreamExt;
+use log::info;
+use minijinja::value::Value as JValue;
+use once_cell::sync::Lazy;
+use once_cell::sync::OnceCell;
+use reqwest::{Client, Request};
+use std::time::Duration;
+use std::thread;
+use std::{io::BufReader, sync::Mutex};
+use std::{path::PathBuf, sync::Arc};
+use tokio::{
+    runtime::Runtime,
+    sync::mpsc::{Receiver, Sender},
+};
+/**
+ * 全局变量
+ */
+const TEMP_GLOBAL_KEY: &str = "PRE_HTTP";
 
-
-
-use egui::{FontData, FontDefinitions, Id, Label, TextStyle};
-
-// use egui_extras::{Size, StripBuilder, TableBuilder};
-use serde::{Deserialize, Serialize};
-
-use crate::component::context_list::Action::Selected;
-use crate::component::context_list::Action::Delete;
-use crate::component::context_list::Action::Keep;
-use crate::component::context_list::ContextTree;
-use crate::component::request_ui::{NetTestUi, ResponseUi};
-
-pub const ADD_ID_KEY: &str = "Http_esay_mocker_recodes";
-const RESPONSE_UI_KEY: &str = "Http_esay_mocker_response_ui";
-const APP_KEY: &str = "Http_easy_tester_xxxx";
-pub const ID_COUNT_KEY: &str = "Http_easy_mocker_count_id";
-const NOTIFICATION_KEY: &str = "http_easy_mocker_Notice";
-lazy_static! {
-    static ref NOTIFICATION_ID: Id = Id::new(NOTIFICATION_KEY);
-}
-const NOTIFICATION_SHOW_TIME: i64 = 5000; //毫秒
-
-/// Represents an HTTP method.
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
-pub enum Method {
-    GET,
-    HEAD,
-    POST,
-    PUT,
-    DELETE,
-    CONNECT,
-    OPTIONS,
-    TRACE,
-    PATCH,
-}
-
-impl FromStr for Method {
-    type Err = String;
-
-    fn from_str(input: &str) -> Result<Self, Self::Err> {
-        match input {
-            "GET" => Ok(Method::GET),
-            "HEAD" => Ok(Method::HEAD),
-            "POST" => Ok(Method::POST),
-            "PUT" => Ok(Method::PUT),
-            "DELETE" => Ok(Method::DELETE),
-            "CONNECT" => Ok(Method::CONNECT),
-            "OPTIONS" => Ok(Method::OPTIONS),
-            "TRACE" => Ok(Method::TRACE),
-            "PATCH" => Ok(Method::PATCH),
-            _ => Err(format!("Invalid HTTP method {}", input)),
-        }
-    }
-}
-
-impl From<&str> for Method {
-    fn from(value: &str) -> Self {
-        value.parse().expect("Cannot parse HTTP method")
-    }
-}
-
-impl std::fmt::Display for Method {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        std::fmt::Debug::fmt(self, f)
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
-enum AppTab {
-    Mock,
-    Req,
-    // Test,
-}
+static TABS: OnceCell<Vec<String>> = OnceCell::new();
+pub static REQ_UI_ID: OnceCell<Id> = OnceCell::new();
+// id.times
+pub static mut TASK_CHANNEL: Lazy<(Sender<(u64, u32, u32)>, Receiver<(u64, u32, u32)>)> =
+    Lazy::new(|| tokio::sync::mpsc::channel(100));
+// id,time
+pub static mut RESULTE_CHANNEL: Lazy<(
+    Sender<(u64, i64, ResponseData)>,
+    Receiver<(u64, i64, ResponseData)>,
+)> = Lazy::new(|| tokio::sync::mpsc::channel(100));
+pub static mut M_RESULTE_CHANNEL: Lazy<(
+    Sender<(u64, usize, i64, ResponseData)>,
+    Receiver<(u64, usize, i64, ResponseData)>,
+)> = Lazy::new(|| tokio::sync::mpsc::channel(100));
+pub static TOASTS: OnceCell<Arc<Mutex<Toasts>>> = OnceCell::new();
+pub static TOKIO_RT: Lazy<Runtime> = Lazy::new(|| {
+    tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        // .worker_threads(16)
+        .build()
+        .unwrap()
+});
+pub static mut CLIENT: Lazy<Client> = Lazy::new(|| {
+    Client::builder()
+        .danger_accept_invalid_certs(true)
+        .build()
+        .unwrap_or_default()
+});
 
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
 pub struct TemplateApp {
-    is_exiting: bool,
-    can_exit: bool,
+    show_log: bool,
 
-    apptab: AppTab,
-    label: String,
-    is_pop: bool,
-    filter: String,
-    records_list: ContextTree,
-    list_selected: u64,
-    list_selected_str: Option<String>,
-    records: BTreeMap<u64, NetTestUi>,
-
+    test: String,
+    // text: DockUi
+    // pub tabs: HashSet<String>,
+    pub tree: Tree<String>,
+    tree_ui: TreeUi,
+    api_data: ApiContext,
     #[serde(skip)]
-    reciever: Option<Receiver<(u64, ResponseUi)>>,
+    opened_file: Option<PathBuf>,
     #[serde(skip)]
-    add_reciever: Option<Receiver<(u64, u64)>>, // current: Option<ApiRecordDefinition>,
-                                                // notifications:Vec<(u64, String)>,
-                                                // method: Method,
-                                                // left:ContextList,
-                                                // this how you opt-out of serialization of a member
-                                                // #[serde(skip)]
-                                                // value: f32,
+    open_file_dialog: Option<FileDialog>,
+    // #[serde(skip)]
+    // script_engine: ScriptEngine,
 }
 
 impl Default for TemplateApp {
     fn default() -> Self {
+        let mut api_context = ApiContext::new();
+        api_context.insert_collecton(0, CollectionsData::default());
         Self {
-            reciever: None,
-            add_reciever: None,
-            is_exiting: false,
-            can_exit: false,
-            apptab: AppTab::Req,
-            // netTestUi: Default::default(),
-            label: "测试案例1".to_owned(),
-            // value: 2.7,
-            is_pop: false,
-            records_list: unsafe { ContextTree::new(0, "HTTP测试") },
-            list_selected_str: None,
-            list_selected: 0,
-            // notifications:Vec::new(),
-            filter: "".into(),
-            // current: None,
-            // method: Method::GET,
-            // notifications: VecDeque::new(),
-            records: BTreeMap::new(),
+            show_log: false,
+            test: "".to_owned(),
+            tree_ui: TreeUi::new(),
+            // tabs:vec![],
+            tree: Tree::new(vec![]),
+            api_data: api_context,
+            // script_engine: ScriptEngine::new(),
+            open_file_dialog: None,
+            opened_file: None,
         }
     }
-}
-
-pub(crate) fn add_notification(ctx: &egui::Context, notice: &str) {
-    let mut egui_data = ctx.data();
-    let notice_vec: &mut Vec<(i64, String)> =
-        egui_data.get_temp_mut_or_default(NOTIFICATION_ID.clone());
-    let now = chrono::Local::now().timestamp_millis();
-    notice_vec.push((now, notice.to_string()));
 }
 
 impl TemplateApp {
-    fn display_notifications(&mut self, ctx: &egui::Context) {
-        let mut offset = 0.;
-        let notice_vec_clone;
-        {
-            let mut egui_data = ctx.data();
-            let notice_vec: Vec<(i64, String)> =
-                egui_data.get_temp(NOTIFICATION_ID.clone()).unwrap();
-            notice_vec_clone = notice_vec.clone();
-        }
-        let now = chrono::Local::now().timestamp_millis();
-        // let notice_own_vec = std::mem::take(notice_vec);
-        notice_vec_clone
-            .iter()
-            .filter(|notice| notice.0 + NOTIFICATION_SHOW_TIME > now)
-            .for_each(|notice| {
-                if let Some(response) = egui::Window::new("通知")
-                    .id(egui::Id::new(offset as u32))
-                    .anchor(egui::Align2::RIGHT_TOP, (0., offset))
-                    .default_size([200., 80.])
-                    .fixed_size([200., 80.])
-                    .collapsible(false)
-                    .resizable(false)
-                    .show(ctx, |ui| {
-                        ui.label(notice.1.clone());
-                    })
-                {
-                    offset += response.response.rect.height();
-                }
-            });
-        // *notice_vec = filted_notice_vec;
-
-        // for (_, notification) in filted_notice_vec.iter() {
-        //     if let Some(response) = egui::Window::new("通知")
-        //         .id(egui::Id::new(offset as u32))
-        //         .anchor(egui::Align2::RIGHT_TOP, (0., offset))
-        //         .collapsible(false)
-        //         .resizable(false)
-        //         .show(ctx, |ui| {
-        //             ui.label(notification);
-        //         })
-        //     {
-        //         offset += dbg!(response.response.rect.height());
-        //     }
-        // }
-        // for (_, error) in &self.errors {
-        //     if let Some(response) = egui::Window::new("Error")
-        //         .id(egui::Id::new(offset as u32))
-        //         .anchor(egui::Align2::RIGHT_TOP, (0., offset))
-        //         .collapsible(false)
-        //         .resizable(false)
-        //         .show(ctx, |ui| {
-        //             ui.colored_label(egui::Color32::RED, error);
-        //         })
-        //     {
-        //         offset += response.response.rect.height();
-        //     }
-        // }
-    }
-
-    // pub fn reset(&mut self) {
-    //     self.records = BTreeMap::new();
-    //     self.records_list = ContextTree::new(0, "HTTP测试");
-    //     self.filter = "".to_string();
-    //     self.list_selected = 0;
-    //     self.list_selected_str = None;
-    // }
-
     /// Called once before the first frame.
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         // This is also where you can customized the look at feel of egui using
@@ -232,405 +126,456 @@ impl TemplateApp {
 
         cc.egui_ctx.set_fonts(fonts);
 
+        // This is also where you can customize the look and feel of egui using
+        // `cc.egui_ctx.set_visuals` and `cc.egui_ctx.set_fonts`.
 
         // Load previous app state (if any).
         // Note that you must enable the `persistence` feature for this to work.
-
-        let notice_id = NOTIFICATION_ID.clone();
-        let notice_vec: Vec<(i64, String)> = Vec::new();
-        cc.egui_ctx.data().insert_temp(notice_id, notice_vec);
-
-
-
         if let Some(storage) = cc.storage {
-            let mut app: TemplateApp = eframe::get_value(storage, APP_KEY).unwrap_or_default();
-            app.is_exiting = false;
-            app.can_exit = false;
-            let (sender, reciever) = std::sync::mpsc::sync_channel::<(u64, ResponseUi)>(10);
-            let (add_sender, add_reciever) = std::sync::mpsc::sync_channel::<(u64, u64)>(100);
-            // let arc_sender = Arc::new(Mutex::new(sender));
-            cc.egui_ctx
-                .data()
-                .insert_temp(Id::new(RESPONSE_UI_KEY), sender);
-            cc.egui_ctx
-                .data()
-                .insert_temp(Id::new(ADD_ID_KEY), add_sender);
-            app.reciever = Some(reciever);
-            app.add_reciever = Some(add_reciever);
-            app.records.iter_mut().for_each(|(_, netUI)| {
-                netUI.add_mpsc();
-            });
+            let app = eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default();
             return app;
         }
-        let (sender, reciever) = std::sync::mpsc::sync_channel::<(u64, ResponseUi)>(10);
-        let (add_sender, add_reciever) = std::sync::mpsc::sync_channel::<(u64, u64)>(100);
-        // let arc_sender = Arc::new(Mutex::new(sender));
-        cc.egui_ctx
-            .data()
-            .insert_temp(Id::new(RESPONSE_UI_KEY), sender);
-        cc.egui_ctx
-            .data()
-            .insert_temp(Id::new(ADD_ID_KEY), add_sender);
-        println!("初始化==================");
-        let mut app: TemplateApp = Default::default();
-        app.reciever = Some(reciever);
-        app.add_reciever = Some(add_reciever);
-        app
+        TemplateApp::default()
+    }
+
+    // pub fn load_ui(&mut self,title: String,tab_ui: Box<dyn TabUi<T = ApiContext>>) {
+    //     self.tabs.insert(title, tab_ui);
+    // }
+
+    // pub fn register_ui(&mut self, title: String, tab_ui: Box<dyn TabUi<T = ApiContext>>) {
+    //     let _ = self.tabs.insert(title.clone(), tab_ui);
+    //     self.tree.push_to_focused_leaf(title);
+    // }
+
+    pub fn trigger_tab(&mut self, tab: &String) {
+        if let Some(index) = self.tree.find_tab(tab) {
+            self.tree.remove_tab(index);
+        } else {
+            self.tree.push_to_focused_leaf(tab.clone());
+        }
+    }
+
+    pub fn open_tab(&mut self, tab: &String) {
+        if let None = self.tree.find_tab(tab) {
+            self.tree.push_to_focused_leaf(tab.clone());
+        }
+    }
+
+    pub fn is_open(&self, title: &String) -> bool {
+        if let Some(_index) = self.tree.find_tab(title) {
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn close_tab(&mut self, title: &String) -> bool {
+        if let Some(index) = self.tree.find_tab(title) {
+            let _rm = self.tree.remove_tab(index);
+        }
+        true
+    }
+
+    fn send_request(&self, req: &RequestData, id: u64) {
+        let req = req.clone();
+        TOKIO_RT.spawn(async move {
+            let start = Local::now().timestamp_millis();
+            let pre_req: PreRequest = (&req).into();
+            let mut resp: ResponseData;
+            if let Ok(send_req) = req.try_into() {
+                resp = match unsafe { CLIENT.execute(send_req) }.await {
+                    Ok(rep) => covert_to_ui(rep).await,
+                    Err(err) => ResponseData {
+                        headers: Default::default(),
+                        body: err.to_string(),
+                        size: 0,
+                        code: "999".to_owned(),
+                        time: 0,
+                    },
+                };
+                let pre_resp: PreResponse = (&resp).into();
+                let pre_http = PreHttpTest {
+                    req: pre_req,
+                    resp: pre_resp,
+                };
+                add_global_var(
+                    TEMP_GLOBAL_KEY.to_owned(),
+                    JValue::from_serializable(&pre_http),
+                );
+                add_global_var(format!("REQ_{}", id), JValue::from_serializable(&pre_http));
+            } else {
+                resp = ResponseData {
+                    headers: Default::default(),
+                    body: "请求URL解析错误".to_string(),
+                    size: 0,
+                    code: "999".to_owned(),
+                    time: 0,
+                };
+            }
+            let end = Local::now().timestamp_millis();
+            let now = end - start;
+            resp.time = now;
+            let _send_res = unsafe { RESULTE_CHANNEL.0.send((id, now, resp)).await };
+        });
     }
 }
 
 impl eframe::App for TemplateApp {
     /// Called by the frame work to save state before shutdown.
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
-        eframe::set_value(storage, APP_KEY, self);
+        eframe::set_value(storage, eframe::APP_KEY, self);
     }
-
-    // fn on_exit_event(&mut self) -> bool {
-    //     self.is_exiting = true;
-    //     self.can_exit
-    // }
 
     /// Called each time the UI needs repainting, which may be many times per second.
     /// Put your widgets into a `SidePanel`, `TopPanel`, `CentralPanel`, `Window` or `Area`.
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
-        // let Self {
-        //     label,
-        //     apptab,
-        //     // is_login,
-        //     list_selected,
-        //     list_selected_str,
-        //     records_list,
-        //     records,
-        //     filter,
-        // } = self;
-
-        self.display_notifications(ctx);
-
-        if let Ok((sup, sub)) = self.add_reciever.as_ref().unwrap().try_recv() {
-            let sup_record = self.records.get(&sup).unwrap();
-            let mut sub_record = NetTestUi::clone_from(sup_record);
-            sub_record.add_mpsc();
-            self.records.insert(sub, sub_record);
-        }
-
         // Examples of how to create different panels and windows.
         // Pick whichever suits you.
         // Tip: a good default choice is to just keep the `CentralPanel`.
         // For inspiration and more examples, go to https://emilk.github.io/egui
-        // if !ctx.input().raw.dropped_files.is_empty() {
-        //     let dropped_files = ctx.input().raw.dropped_files.clone();
-        //     for file in dropped_files {
-        //         if let Some(file_p) = file.path {
-        //             if file_p.ends_with("json") {
-        //                 if let Some(bytes) = file.bytes {
-        //                     let slice_bytes = bytes.as_ref();
-        //                     let mut app: TemplateApp = serde_json::from_slice(slice_bytes).unwrap();
-        //                     app.records.iter_mut().for_each(|(_, netUI)| {
-        //                         netUI.add_mpsc();
-        //                     });
-        //                     self.records = app.records;
-        //                     self.records_list = app.records_list;
-        //                     self.list_selected = app.list_selected;
-        //                     self.list_selected_str = app.list_selected_str;
-        //                 }
-        //             }
-        //         }
-        //     }
-        // }
 
+        // if ctx.style().visuals.dark_mode {
+        //     catppuccin_egui::set_theme(&ctx, catppuccin_egui::FRAPPE);
+        // } else {
+        //     catppuccin_egui::set_theme(&ctx, catppuccin_egui::LATTE);
+        // }
+        let toast = TOASTS.get_or_init(|| {
+            Arc::new(Mutex::new(
+                Toasts::default().with_anchor(egui_notify::Anchor::BottomRight),
+            ))
+        });
+        if self.show_log {
+            Window::new("Log").title_bar(true).show(ctx, |ui| {
+                // draws the logger ui.
+                egui_logger::logger_ui(ui);
+            });
+        }
+
+        // #[cfg(not(target_arch = "wasm32"))] // no File->Quit on web pages!
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             // The top panel is often a good place for a menu bar:
             egui::menu::bar(ui, |ui| {
-                egui::widgets::global_dark_light_mode_switch(ui);
-                ui.menu_button("菜单", |ui| {
-                    if ui.button("退出").clicked() {
-                        frame.quit();
-                    }
-                    if ui
-                        .button("加载json文件")
-                        .on_hover_text("将加载与app同路径下的app.json文件")
-                        .clicked()
-                    {
-                        let ok = rfd::MessageDialog::new()
-                            .set_level(rfd::MessageLevel::Info)
-                            .set_buttons(rfd::MessageButtons::OkCancel)
-                            .set_description("将加载与app同路径下的app.json文件")
-                            .set_title("加载文件")
-                            .show();
-                        if ok {
-                            if let Ok(file) = std::fs::File::open("app.json") {
-                                let reader = BufReader::new(file);
-                                let mut app: TemplateApp = serde_json::from_reader(reader).unwrap();
-                                app.records.iter_mut().for_each(|(_, netUI)| {
-                                    netUI.add_mpsc();
-                                });
-                                self.records = app.records;
-                                self.records_list = app.records_list;
-                                self.list_selected = app.list_selected;
-                                self.list_selected_str = app.list_selected_str;
-                            }
-                        }
-                    }
-                    if ui.button("保存为json文件").clicked() {
-                        let app_json = std::fs::File::open("app.json")
-                            .unwrap_or_else(|_err| std::fs::File::create("app.json").unwrap());
-                        if let Err(err) = serde_json::to_writer_pretty(app_json, self) {
-                            rfd::MessageDialog::new()
-                                .set_level(rfd::MessageLevel::Error)
-                                .set_buttons(rfd::MessageButtons::Ok)
-                                .set_description(format!("app.json读取错误:{}",err.to_string()).as_str())
-                                .set_title("读取文件错误")
-                                .show();
-                        } else {
-                            rfd::MessageDialog::new()
-                                .set_level(rfd::MessageLevel::Info)
-                                .set_buttons(rfd::MessageButtons::Ok)
-                                .set_description("已将app信息保存app同路径下的app.json文件中")
-                                .set_title("保存文件")
-                                .show();
-                        }
+                global_dark_light_mode_switch(ui);
+
+                #[cfg(not(target_arch = "wasm32"))] // no File->Quit on web pages!
+                ui.menu_button("File", |ui| {
+                    if (ui.button("Import")).clicked() {
+                        let mut dialog = FileDialog::open_file(self.opened_file.clone())
+                            .show_rename(false)
+                            .filter(Box::new(|p| p.to_string_lossy().ends_with("json")));
+                        dialog.open();
+                        self.open_file_dialog = Some(dialog);
                     }
 
-                    if ui.button("选择json文件…").clicked() {
-                        if let Some(path) = rfd::FileDialog::new()
-                            .add_filter("app存储文件", &["json", "JSON"])
-                            .set_file_name("app")
-                            .set_directory(".")
-                            .pick_file()
-                        {
-                            let picked_path = Some(path.display().to_string()).unwrap();
-                            if let Ok(file) = std::fs::File::open(picked_path) {
-                                let reader = BufReader::new(file);
-                                let mut app: TemplateApp = serde_json::from_reader(reader).unwrap();
-                                app.records.iter_mut().for_each(|(_, netUI)| {
-                                    netUI.add_mpsc();
-                                });
-                                // *self = app;
-                                self.records = app.records;
-                                self.records_list = app.records_list;
-                                self.list_selected = app.list_selected;
-                                self.list_selected_str = app.list_selected_str;
-                            }
-                        }
+                    if (ui.button("Export")).clicked() {
+                        let mut dialog = FileDialog::save_file(self.opened_file.clone())
+                            .default_filename("app.json");
+                        dialog.open();
+                        self.open_file_dialog = Some(dialog);
                     }
-                    // if ui.button("清除所有记录").clicked() {
-                    //     self.is_pop=true;
-                    // }
-                    // if self.is_pop {
-                    // egui::Window::new("警告")
-                    //     .collapsible(false)
-                    //     .resizable(false)
-                    //     .fixed_size([80.,140.])
-                    //     .anchor(egui::Align2::CENTER_CENTER, [0.0,0.0])
-                    //     .show(ctx, |ui|{
-                    //         ui.add_space(20.);
-                    //         ui.label("是否清除所有记录?");
-                    //         ui.add_space(20.);
-                    //         ui.horizontal(|ui|{
-                    //             if ui.button("是").clicked() {
-                    //                 self.reset();
-                    //                 self.is_pop = false;
-                    //             }
-                    //             if ui.button("否").clicked() {
-                    //                 self.is_pop = false;
-                    //             }
 
-                    //         });
-                    //     });
-                    // }
+                    if ui.button("Quit").clicked() {
+                        frame.close();
+                    }
                 });
-                // ui.selectable_value(apptab, AppTab::Mock, "模拟");
-                // ui.selectable_value(apptab, AppTab::Req, "请求");
-                // ui.add(toggle(is_login));
-                // ui.toggle_value(is_login, "历史记录");
-                // ui.selectable_value(apptab, AppTab::Test, "测试");
+                if ui.selectable_label(self.show_log, "打开日志").clicked() {
+                    self.show_log = !self.show_log;
+                }
+                if !frame.is_web() {
+                    ui.menu_button("Zoom", |ui| {
+                        egui::gui_zoom::zoom_menu_buttons(ui, frame.info().native_pixels_per_point);
+                    });
+                }
+
+                ui.menu_button("View", |ui| {
+                    // allow certain tabs to be toggled
+                    for tab in TABS
+                        .get_or_init(|| {
+                            vec![
+                                "请求".to_owned(),
+                                "响应".to_owned(),
+                                "设置".to_owned(),
+                                "图表".to_owned(),
+                                // "记录".to_owned(),
+                                "脚本".to_owned(),
+                            ]
+                        })
+                        .iter()
+                    {
+                        if ui
+                            .selectable_label(self.is_open(tab), tab.clone())
+                            .clicked()
+                        {
+                            self.trigger_tab(tab);
+                            ui.close_menu();
+                        }
+                    }
+                });
             });
         });
 
-        egui::SidePanel::left("side_panel").show(ctx, |ui| {
-            if ui
-                .interact(
-                    ui.available_rect_before_wrap(),
-                    ui.id(),
-                    egui::Sense::drag(),
-                )
-                .drag_released()
-            {}
-
-            ui.add(egui::TextEdit::singleline(&mut self.filter).hint_text("筛选条件"));
-            let list_resp = self.records_list.ui_impl(
-                ui,
-                self.list_selected.clone(),
-                &mut self.label,
-                &mut self.filter,
-            );
-            match list_resp {
-                Selected((id, title)) => {
-                    self.list_selected = id;
-                    self.list_selected_str = Some(title)
-                }
-                Delete(subids) => {
-                    subids.iter().for_each(|id|{
-                        self.records.remove(id);
-                    });
-                },
-                Keep => {},
-            }
-
-            // ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
-            //     ui.horizontal(|ui| {
-            //         ui.spacing_mut().item_spacing.x = 0.0;
-            //         ui.label("powered by ");
-            //         ui.hyperlink_to("egui", "https://github.com/emilk/egui");
-            //         ui.label(" and ");
-            //         ui.hyperlink_to("eframe", "https://github.com/emilk/egui/tree/master/eframe");
-            //     });
-            // });
-        });
-
-        egui::CentralPanel::default().show(ctx, |ui| {
-            match self.apptab {
-                AppTab::Mock => {
-                    ui.add(Label::new(
-                        egui::RichText::new("模拟服务器")
-                            .color(egui::Color32::RED)
-                            .heading(),
-                    ));
-                }
-                AppTab::Req => {
-                    // ui.add(Label::new(
-                    //     egui::RichText::new("发送请求")
-                    //         .color(egui::Color32::RED)
-                    //         .heading(),
-                    // ));
-                    ui.heading(
-                        self.list_selected_str
-                            .clone()
-                            .or(Some("未命名".into()))
-                            .unwrap()
-                            .as_str(),
-                    );
-                    // ui.separator();
-                    if let Some(netUi) = self.records.get_mut(&self.list_selected) {
-                        netUi.ui(ui);
-                    } else {
-                        let mut netUI = NetTestUi::test();
-                        netUI.ui(ui);
-                        self.records.insert(self.list_selected.to_owned(), netUI);
+        if let Some(dialog) = &mut self.open_file_dialog {
+            if dialog.show(ctx).selected() {
+                if let Some(file) = dialog.path() {
+                    self.opened_file = Some(file.clone());
+                    match dialog.dialog_type() {
+                        DialogType::OpenFile => {
+                            if let Ok(rfile) = std::fs::File::open(file.clone()) {
+                                let reader = BufReader::new(rfile);
+                                let app: TemplateApp = serde_json::from_reader(reader).unwrap();
+                                *self = app;
+                                // self.records = app.records;
+                                // self.records_list = app.records_list;
+                                // self.list_selected = app.list_selected;
+                                // self.list_selected_str = app.list_selected_str;
+                            }
+                        }
+                        DialogType::SaveFile => {
+                            let app_json =
+                                std::fs::File::open(file.clone()).unwrap_or_else(|_err| {
+                                    std::fs::File::create(file.clone()).unwrap()
+                                });
+                            if let Err(err) = serde_json::to_writer_pretty(app_json, self) {
+                                if let Ok(mut toast_w) = toast.lock() {
+                                    toast_w
+                                        .error(format!("save file error:{}", err.to_string()))
+                                        .set_duration(Some(Duration::from_secs(5)));
+                                }
+                            } else {
+                                if let Ok(mut toast_w) = toast.lock() {
+                                    toast_w
+                                        .info(format!(
+                                            "file saved success:{}",
+                                            file.to_string_lossy()
+                                        ))
+                                        .set_duration(Some(Duration::from_secs(5)));
+                                }
+                            }
+                        }
+                        _ => {}
                     }
-                } // AppTab::Test => {
-                  //     ui.add(Label::new(
-                  //         egui::RichText::new("压力测试")
-                  //             .color(egui::Color32::RED)
-                  //             .heading(),
-                  //     ));
-                  // }
+                }
             }
-        });
+        }
 
-        // if self.is_exiting {
-        // let ok = rfd::MessageDialog::new()
-        //     .set_level(rfd::MessageLevel::Info)
-        //     .set_buttons(rfd::MessageButtons::YesNo)
-        //     .set_description("是否退出应用？")
-        //     .set_title("退出")
-        //     .show();
-        // if ok {
-        //     self.can_exit = true;
-        //     frame.quit();
-        // }
-        // egui::Window::new("确认退出?")
-        //     .collapsible(false)
-        //     .resizable(false)
-        //     .show(ctx, |ui| {
-        //         ui.horizontal(|ui| {
-        //             if ui.button("暂不").clicked() {
-        //                 self.is_exiting = false;
-        //             }
+        egui::SidePanel::left("side_panel")
+            .max_width(240.0)
+            .show(ctx, |ui| {
+                egui::ScrollArea::both().show(ui, |ui| {
+                    // ui.with_layout(Layout::top_down(egui::Align::LEFT), |ui|{
+                    match self.tree_ui.ui_impl(ui) {
+                        tree_ui::Action::Keep => {
+                            //ignore
+                        }
+                        tree_ui::Action::Delete(dels) => {
+                            for del_id in dels {
+                                info!("删除{}", del_id);
+                                self.api_data.delete_collecton(del_id);
+                                self.api_data.delete_test(del_id);
+                            }
+                        }
+                        tree_ui::Action::Add((adds, node_type)) => {
+                            let add_id = adds.first().unwrap().to_owned();
+                            info!("添加{},{:?}", &add_id, &node_type);
+                            match node_type {
+                                tree_ui::NodeType::Collection => {
+                                    self.api_data
+                                        .insert_collecton(add_id, CollectionsData::default());
+                                }
+                                tree_ui::NodeType::Node => {
+                                    self.api_data.insert_test(add_id, ApiTester::default());
+                                }
+                            }
+                        }
+                        tree_ui::Action::Rename(_adds) => {
+                            //基本上不用处理
+                            info!("重命名")
+                        }
+                        tree_ui::Action::Selected((selected_id, selected_title)) => {
+                            let selected = *selected_id.first().unwrap_or(&0);
+                            self.api_data.selected = selected_id;
+                            if let Ok(mut toast_w) = toast.lock() {
+                                toast_w
+                                    .info(format!("已选中{}-标题{}", selected, selected_title))
+                                    .set_duration(Some(Duration::from_secs(5)));
+                            }
+                        }
+                        tree_ui::Action::Copy(cop) => {
+                            if let Ok(mut toast_w) = toast.lock() {
+                                toast_w
+                                    .info(format!("已复制{}", cop.0))
+                                    .set_duration(Some(Duration::from_secs(5)));
+                            }
+                        }
+                        tree_ui::Action::Parse(mut parse) => {
+                            //复制动作
+                            let _ = parse.pop();
+                            if let Some((sid, did)) = self.tree_ui.parse_node(parse) {
+                                if let Some(copyed) = self.api_data.tests.get(&sid) {
+                                    let parse = copyed.clone();
+                                    self.api_data.insert_test(did, parse);
+                                }
+                            }
+                        }
+                    }
+                    ui.add_space(ui.available_height());
+                });
+                //    });
+            });
 
-        //             if ui.button("是的").clicked() {
-        //                 self.can_exit = true;
-        //                 frame.quit();
-        //             }
-        //         });
-        //     });
-        // }
+        egui::CentralPanel::default()
+            .frame(Frame::central_panel(&ctx.style()).inner_margin(0.))
+            .show(ctx, |ui| {
+                let mut dst = Style::from_egui(ui.style());
 
-        // if *is_login {
-        // egui::SidePanel::right("right_panel").show(ctx, |ui| {
-        //     ui.label("Windows can be moved by dragging them.");
-        // });
-        // }
+                dst.separator.color_dragged = Color32::RED;
+                // dst.tab_text_color_active_focused = Color32::BROWN;
+                DockArea::new(&mut self.tree)
+                    .style(dst)
+                    .show_inside(ui, &mut self.api_data);
+            });
 
-        // if !*is_login {
-        //     egui::Window::new("登录")
-        //         .collapsible(false)
-        //         .resizable(false)
-        //         // .open(&mut false)
-        //         .anchor(egui::Align2::CENTER_CENTER, egui::vec2(0f32, 0f32))
-        //         .show(ctx, |ui| {
-        //             egui::Grid::new("login_grid")
-        //                 .num_columns(2)
-        //                 .spacing([40.0, 4.0])
-        //                 // .striped(true)
-        //                 .show(ui, |ui| {
-        //                     ui.label("用户名：");
-        //                     ui.text_edit_singleline(label).on_hover_text("请输入用户名");
-        //                     ui.end_row();
+        // ...
+        if let Ok(send) = unsafe { TASK_CHANNEL.1.try_recv() } {
+            // if let Ok(mut toast_w) = toast.lock() {
+            //     toast_w
+            //         .info(format!("发送{}号{}次", send.0, send.1))
+            //         .set_duration(Some(Duration::from_secs(5)));
+            // }
+            if let Some(req) = self.api_data.tests.get(&send.0) {
+                self.api_data.run_script();
+                if send.1 == 0 || send.2 == 0 {
+                    //执行脚本,不发请求
+                } else if send.1 == 1 && send.2 == 1 {
+                    self.send_request(&req.req, send.0);
+                } else {
+                    load_test_sender(&req.req, send.0, send.1, send.2);
+                }
+            }
+        }
 
-        //                     ui.label("密  码：");
-        //                     ui.add(password(label));
-        //                     ui.end_row();
+        if let Ok((resp_id, resp_time, resp_data)) = unsafe { RESULTE_CHANNEL.1.try_recv() } {
+            if let Ok(mut toast_w) = toast.lock() {
+                toast_w
+                    .info(format!("{}号响应时间{}", resp_id, resp_time))
+                    .set_duration(Some(Duration::from_secs(5)));
+            }
+            if let Some(resp_dn) = self.api_data.tests.get_mut(&resp_id) {
+                resp_dn.resp = resp_data;
+                if let Some(req_id) = REQ_UI_ID.get() {
+                    let state_id = req_id.with(resp_id);
+                    //更新对应的ui状态
+                    let _send_state = ctx.data_mut(|d| d.insert_temp(state_id, false));
+                }
+            }
+        }
 
-        //                     ui.label("验证码：");
-        //                     ui.text_edit_singleline(&mut "请输入验证码");
-        //                     ui.end_row();
-
-        //                     ui.add_visible(false, egui::Label::new("zhanwein"));
-        //                     ui.horizontal(|ui| {
-        //                         let login_click = ui.button("登    录");
-        //                         let _regist_click = ui.button("注    册");
-        //                         let _forget_password = ui.button("忘记密码");
-
-        //                         if login_click.clicked() {
-        //                             *is_login = true;
-        //                         }
-        //                     })
-        //                 });
-        //         });
-        // }
+        if let Ok(resp_rs) = unsafe { M_RESULTE_CHANNEL.1.try_recv() } {
+            //结束
+            info!("返回响应{:?}", &resp_rs.3);
+            if resp_rs.1 == 0 && resp_rs.2 == -1 {
+                if let Some(req_id) = REQ_UI_ID.get() {
+                    let state_id = req_id.with(resp_rs.0);
+                    //更新对应的ui状态
+                    let _send_state = ctx.data_mut(|d| d.insert_temp(state_id, false));
+                }
+            } else {
+                if let Some(resp_dn) = self.api_data.tests.get_mut(&resp_rs.0) {
+                    if &resp_rs.3.code == "999" {
+                        resp_dn.load_test.result.error += 1.0;
+                    }
+                    resp_dn.load_test.update_process();
+                    resp_dn.load_test.add_result(resp_rs.1, resp_rs.2);
+                    resp_dn.load_test.recode_time(resp_rs.2);
+                }
+            }
+        }
+        if let Ok(mut toast_w) = toast.lock() {
+            toast_w.show(ctx);
+        }
     }
 }
 
-// fn api_url_ui(method: &str, url: &str, mode: bool, font_size: f32) -> LayoutJob {
-//     let mut job = LayoutJob::default();
+fn load_test_sender(req: &RequestData, id: u64, reqs: u32, round: u32) {
+    let capacity: usize = (round as usize) * (reqs as usize);
+    let mut sender_requsets: Vec<(usize, Request)> = Vec::with_capacity(capacity);
+    for i in 0..capacity {
+        let req_clone = req.clone();
+        if let Ok(real_req) = req_clone.try_into() {
+            sender_requsets.push((i, real_req));
+        }
+    }
+    sender_requsets.reverse();
 
-//     let (default_color, strong_color, bg_color) = if mode {
-//         (Color32::LIGHT_GRAY, Color32::WHITE, Color32::DARK_RED)
-//     } else {
-//         (Color32::DARK_GRAY, Color32::BLACK, Color32::LIGHT_RED)
-//     };
-//     let font = FontId::new(font_size, egui::FontFamily::Proportional);
+    let _ = thread::Builder::new()
+        .name("send_req_thread".to_string())
+        .spawn(move || {
+            let _respui = TOKIO_RT.block_on(async move {
+                for _ in 0..round {
+                    // let client = reqwest::Client::new();
+                    let start = std::time::SystemTime::now();
+                    let mut f_vec = Vec::new();
+                    for _ in 0..reqs {
+                        let req = sender_requsets.pop().unwrap();
+                        let f = send_load_test_request(req, id);
+                        // let _tf = tokio::task::spawn(f);
+                        f_vec.push(f);
+                    }
+                    // println!("生成完成：{}-{}",f_vec.len(),duration);
+                    // let result = stream::iter(f_vec)
+                    //                         .buffer_unordered(16)
+                    //                         .collect::<Vec<_>>().await;
+                    // let _tf = tokio::spawn(
+                    tokio_stream::iter(f_vec)
+                        .buffered(reqs as usize)
+                        .collect::<Vec<_>>()
+                        .await;
+                    // );
+                    let duration = start.elapsed().unwrap().as_millis() as u64;
+                    if duration < 1000 {
+                        tokio::time::sleep(Duration::from_millis(1000 - duration)).await;
+                    }
+                }
+                let _rs = unsafe {
+                    M_RESULTE_CHANNEL
+                        .0
+                        .send((id, 0, -1, ResponseData::default()))
+                        .await
+                };
+            });
+        });
+    //发送一个完成的数据
+}
 
-//     job.append(
-//         method,
-//         0.0,
-//         TextFormat {
-//             color: strong_color,
-//             font_id: font.clone(),
-//             background: bg_color,
-//             ..Default::default()
-//         },
-//     );
-
-//     job.append(
-//         url,
-//         0.0,
-//         TextFormat {
-//             color: default_color,
-//             font_id: font,
-//             ..Default::default()
-//         },
-//     );
-//     job
-// }
+async fn send_load_test_request(ireq: (usize, Request), id: u64) {
+    let start = Local::now().timestamp_millis();
+    let (index, req) = ireq;
+    match unsafe { CLIENT.execute(req) }.await {
+        Ok(rep) => {
+            let resp_ui = covert_to_ui(rep).await;
+            let end = Local::now().timestamp_millis();
+            let _ = unsafe {
+                M_RESULTE_CHANNEL
+                    .0
+                    .send((id, index, end - start, resp_ui))
+                    .await
+            };
+        }
+        Err(err) => {
+            let resp_ui = ResponseData {
+                headers: Default::default(),
+                body: err.to_string(),
+                size: 0,
+                code: "999".to_owned(),
+                time: 0,
+            };
+            let end = Local::now().timestamp_millis();
+            let _ = unsafe {
+                M_RESULTE_CHANNEL
+                    .0
+                    .send((id, index, end - start, resp_ui))
+                    .await
+            };
+        }
+    }
+}

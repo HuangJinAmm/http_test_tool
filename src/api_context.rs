@@ -10,7 +10,7 @@ use crate::{
 use egui::WidgetText;
 use egui_dock::TabViewer;
 use minijinja::value::Value;
-use rhai::Scope;
+use rhai::{EvalAltResult, Scope};
 
 #[derive(serde::Deserialize, serde::Serialize)]
 pub struct ApiContext {
@@ -97,25 +97,20 @@ impl ApiContext {
         }
     }
 
-
-    pub fn run_after_script(&self,resp:&str,script_scope:&mut Scope) {
-        SCRIPT_ENGINE.run_with_scope(script_scope, resp);
-    }
-
-    pub fn run_script(&self) {
+    pub fn run_script(&self) -> Result<(), Box<EvalAltResult>> {
         let mut parents = self.selected.clone();
         let script_scope = &mut Scope::new();
         let cid = parents.remove(0);
         while let Some(pid) = parents.pop() {
             if let Some(pdata) = self.collections.get(&pid) {
-                SCRIPT_ENGINE.run_with_scope(script_scope, &pdata.script);
+                let _res = SCRIPT_ENGINE.run_with_scope(script_scope, &pdata.script)?;
             }
         }
 
         if let Some(aip) = self.tests.get(&cid) {
-            SCRIPT_ENGINE.run_with_scope(script_scope, &aip.script.pre);
+            SCRIPT_ENGINE.run_with_scope(script_scope, &aip.script.pre)?;
         }
-        let mut script_ctx:HashMap<String, Value> = HashMap::new();
+        let mut script_ctx: HashMap<String, Value> = HashMap::new();
 
         for (name, _is_constant, value) in script_scope.iter() {
             // let temp_value = serde_json::to_string(&value).unwrap();
@@ -134,10 +129,11 @@ impl ApiContext {
             }
         }
 
-        let _ = TMP_SCOPE_CTX.write().and_then(|mut tmp|{
+        let _ = TMP_SCOPE_CTX.write().and_then(|mut tmp| {
             *tmp = Value::from(script_ctx);
             Ok(())
         });
+        Ok(())
     }
 
     pub fn insert_collecton(

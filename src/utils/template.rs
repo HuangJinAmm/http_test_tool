@@ -1,10 +1,10 @@
-use std::borrow::BorrowMut;
-use std::sync::{Arc, Mutex,RwLock};
-use base64::{Engine,engine::general_purpose::STANDARD};
+use base64::{engine::general_purpose::STANDARD, Engine};
 use chrono::{DateTime, Duration, Local, TimeZone, Utc};
 use minijinja::value::Value;
 use minijinja::{context, Environment, Syntax};
 use minijinja::{Error, ErrorKind, State};
+use std::borrow::BorrowMut;
+use std::sync::{Arc, Mutex, RwLock};
 
 use crate::utils::aes_tool::{
     aes_dec_cbc_string, aes_dec_ctr_string, aes_dec_ecb_string, aes_enc_cbc_string,
@@ -20,9 +20,8 @@ use uuid::Uuid;
 // const ASCII: &str = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"#$%&\'()*+,-./:;<=>?@";
 const ASCII_HEX: &str = "0123456789ABCDEF";
 const ASCII_NUM: &str = "0123456789";
-pub static TMP_SCOPE_CTX:Lazy<Arc<RwLock<Value>>> = Lazy::new(||{
-    Arc::new(RwLock::new(Value::UNDEFINED)) 
-});
+pub static TMP_SCOPE_CTX: Lazy<Arc<RwLock<Value>>> =
+    Lazy::new(|| Arc::new(RwLock::new(Value::UNDEFINED)));
 static TEMP_ENV: Lazy<Arc<Mutex<Environment<'static>>>> = Lazy::new(|| {
     let mut t_env = Environment::new();
 
@@ -139,7 +138,7 @@ fn aes_enc_ctr(
     iv: String,
 ) -> Result<String, Error> {
     aes_enc_ctr_string(key.as_str(), value.as_str(), iv.as_str())
-        .map(|res|STANDARD.encode(res))
+        .map(|res| STANDARD.encode(res))
         .map_err(|e| Error::new(ErrorKind::InvalidOperation, e))
 }
 
@@ -259,7 +258,7 @@ fn fake_base64_en(_state: &State<'_, '_>, fmt: String) -> Result<String, Error> 
 }
 
 fn fake_base64_de(_state: &State<'_, '_>, fmt: String) -> Result<String, Error> {
-    let df =  STANDARD.decode(fmt.clone());
+    let df = STANDARD.decode(fmt.clone());
     if let Ok(bytes) = df {
         if let Ok(f) = String::from_utf8(bytes) {
             return Ok(f);

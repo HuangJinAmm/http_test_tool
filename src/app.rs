@@ -444,13 +444,20 @@ impl eframe::App for TemplateApp {
             //         .set_duration(Some(Duration::from_secs(5)));
             // }
             if let Some(req) = self.api_data.tests.get(&send.0) {
-                self.api_data.run_script();
-                if send.1 == 0 || send.2 == 0 {
-                    //执行脚本,不发请求
-                } else if send.1 == 1 && send.2 == 1 {
-                    self.send_request(&req.req, send.0);
+                if let Err(e) = self.api_data.run_script() {
+                    if let Ok(mut toast_w) = toast.lock() {
+                        toast_w
+                            .info(format!("脚本执行错误:{}-{}", e.position(), e.to_string()))
+                            .set_duration(Some(Duration::from_secs(5)));
+                    }
                 } else {
-                    load_test_sender(&req.req, send.0, send.1, send.2);
+                    if send.1 == 0 || send.2 == 0 {
+                        //执行脚本,不发请求
+                    } else if send.1 == 1 && send.2 == 1 {
+                        self.send_request(&req.req, send.0);
+                    } else {
+                        load_test_sender(&req.req, send.0, send.1, send.2);
+                    }
                 }
             }
         }
@@ -472,7 +479,13 @@ impl eframe::App for TemplateApp {
                 script_scope.push("_req_url", resp_dn.req.url.clone());
                 script_scope.push("_req_body", resp_dn.req.body.clone());
                 script_scope.push("_resp", resp_dn.resp.clone());
-                SCRIPT_ENGINE.run_with_scope(script_scope,&resp_dn.script.after);
+                if let Err(e) = SCRIPT_ENGINE.run_with_scope(script_scope,&resp_dn.script.after) {
+                    if let Ok(mut toast_w) = toast.lock() {
+                        toast_w
+                            .info(format!("脚本执行错误:{}-{}", e.position(), e.to_string()))
+                            .set_duration(Some(Duration::from_secs(5)));
+                    }
+                }
             }
         }
 

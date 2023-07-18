@@ -45,13 +45,77 @@ macro_rules! insert_suggest {
 impl Default for TextEdit {
     fn default() -> Self {
         let mut sug = AutoSuggester::default();
-        insert_suggest!(sug, "name");
-        insert_suggest!(sug, "test");
-        insert_suggest!(sug, "while");
-        insert_suggest!(sug, "toggleUp", |s| { s.to_uppercase() });
-        insert_suggest!(sug, "addb", add_braces);
-        insert_suggest!(sug, "addsq", |s| { "'".to_owned() + s + "'" });
-        insert_suggest!(sug, "adds", |s| { "\"".to_owned() + s + "\"" });
+        insert_suggest!(sug, "type_of", |_s| "type_of()".to_owned());
+        insert_suggest!(sug, "true");
+        insert_suggest!(sug, "false");
+        insert_suggest!(sug, "let");
+        insert_suggest!(sug, "const");
+        insert_suggest!(sug, "curry");
+        insert_suggest!(sug, "return");
+        insert_suggest!(sug, "throw");
+
+        insert_suggest!(sug, "faker::zh_name", |_s| "faker::zh_name()".to_owned());
+        insert_suggest!(sug, "faker::en_name", |_s| "faker::en_name()".to_owned());
+        insert_suggest!(sug, "faker::hex_str", |_s| "faker::hex_str(0,10)"
+            .to_owned());
+        insert_suggest!(sug, "faker::str", |_s| "faker::str(0,10)".to_owned());
+        insert_suggest!(sug, "faker::num_str", |_s| "faker::num_str(0,100)"
+            .to_owned());
+        insert_suggest!(sug, "faker::num", |_s| "faker::num(0,100)".to_owned());
+
+        insert_suggest!(sug, "faker::email", |_s| "faker::email()".to_owned());
+        insert_suggest!(sug, "faker::username", |_s| "faker::username()".to_owned());
+        insert_suggest!(sug, "faker::ip4", |_s| "faker::ip4()".to_owned());
+        insert_suggest!(sug, "faker::ip6", |_s| "faker::ip6()".to_owned());
+        insert_suggest!(sug, "faker::useragent", |_s| "faker::useragent()"
+            .to_owned());
+        insert_suggest!(sug, "faker::mac", |_s| "faker::mac()".to_owned());
+        insert_suggest!(sug, "faker::password", |_s| "faker::password()".to_owned());
+        insert_suggest!(sug, "faker::uuid", |_s| "faker::uuid()".to_owned());
+        insert_suggest!(sug, "faker::uuid_simple", |_s| "faker::uuid_simple()"
+            .to_owned());
+
+        insert_suggest!(sug, "faker::now", |_s| "faker::now(\"%Y-%m-%dT%H:%M:%S\")"
+            .to_owned());
+
+        insert_suggest!(sug, "faker::datetime", |_s| {
+            "faker::datetime(\"%Y-%m-%dT%H:%M:%S\")".to_owned()
+        });
+        insert_suggest!(sug, "faker::datetime_after", |_s| {
+            "faker::datetime_after(\"%Y-%m-%dT%H:%M:%S\",\"2020-05-03T00:00:00\")".to_owned()
+        });
+        insert_suggest!(sug, "faker::datetime_before", |_s| {
+            "faker::datetime_before(\"%Y-%m-%dT%H:%M:%S\",\"2020-05-03T00:00:00\")".to_owned()
+        });
+        insert_suggest!(sug, "faker::date_add", |_s| {
+            "faker::date_add(\"%Y-%m-%dT%H:%M:%S\",\"2020-05-03T00:00:00\")".to_owned()
+        });
+
+        insert_suggest!(sug, "log::info", |_s| { r#"log::info("msg")"#.to_owned() });
+        insert_suggest!(sug, "log::error", |_s| { "log::error(\"msg\")".to_owned() });
+        insert_suggest!(sug, "log::debug", |_s| { "log::debug(\"msg\")".to_owned() });
+        // insert_suggest!(sug, "log::info", |_s| { "log::info("msg")".to_owned() });
+        insert_suggest!(sug, "log::warn", |_s| { "log::warn(\"msg\")".to_owned() });
+
+        insert_suggest!(sug, "base64::encode", |_s| {
+            "base64::encode(msg)".to_owned()
+        });
+        insert_suggest!(sug, "base64::decode", |_s| {
+            "base64::decode(msg)".to_owned()
+        });
+
+        insert_suggest!(sug, "crypto::Aes::encode_cbc", |_s| {
+            "crypto::Aes::encode_cbc(key,input,iv);".to_owned()
+        });
+        insert_suggest!(sug, "crypto::Aes::decode_cbc", |_s| {
+            "crypto::Aes::decode_cbc(key,input,iv);".to_owned()
+        });
+
+        insert_suggest!(sug, "trycatch", |_s| {
+            "try { \n } catch ( err) { \n log::error(err)\n}".to_owned()
+        });
+        insert_suggest!(sug, "ifelse", |_s| { "if {\\n} \\nelse {\n\n}".to_owned() });
+        insert_suggest!(sug, "switch", |_s| { "switch EXPR {\\n}\\n".to_owned() });
         Self {
             language: "json".to_owned(),
             suggest: sug,
@@ -307,9 +371,7 @@ impl TextEdit {
         F: for<'a> Fn(&'a str) -> String,
     {
         let selected_str = text.char_range(selected_range.clone());
-        dbg!(selected_str);
         let new_str = conventer(selected_str).to_owned();
-        dbg!(&new_str);
         text.delete_char_range(selected_range.clone());
         text.insert_text(&new_str, selected_range.start);
         //返回新的index给后续设置光标位置

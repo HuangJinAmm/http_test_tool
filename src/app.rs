@@ -4,7 +4,7 @@ use crate::{
     request_data::{covert_to_ui, PreHttpTest, PreRequest, PreResponse, RequestData, ResponseData},
     utils::{
         // rhai_script::ScriptEngine,
-        template::add_global_var,
+        template::add_global_var, rhai_script::SCRIPT_ENGINE,
     },
 };
 use chrono::Local;
@@ -21,6 +21,7 @@ use minijinja::value::Value as JValue;
 use once_cell::sync::Lazy;
 use once_cell::sync::OnceCell;
 use reqwest::{Client, Request};
+use rhai::Scope;
 use std::time::Duration;
 use std::thread;
 use std::{io::BufReader, sync::Mutex};
@@ -467,6 +468,11 @@ impl eframe::App for TemplateApp {
                     //更新对应的ui状态
                     let _send_state = ctx.data_mut(|d| d.insert_temp(state_id, false));
                 }
+                let script_scope = &mut Scope::new();
+                script_scope.push("_req_url", resp_dn.req.url.clone());
+                script_scope.push("_req_body", resp_dn.req.body.clone());
+                script_scope.push("_resp", resp_dn.resp.clone());
+                SCRIPT_ENGINE.run_with_scope(script_scope,&resp_dn.script.after);
             }
         }
 

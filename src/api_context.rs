@@ -97,6 +97,11 @@ impl ApiContext {
         }
     }
 
+
+    pub fn run_after_script(&self,resp:&str,script_scope:&mut Scope) {
+        SCRIPT_ENGINE.run_with_scope(script_scope, resp);
+    }
+
     pub fn run_script(&self) {
         let mut parents = self.selected.clone();
         let script_scope = &mut Scope::new();

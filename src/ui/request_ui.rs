@@ -141,15 +141,17 @@ impl RequestUi {
                                 ui.add_space(29.0);
                             }
                             if ui.toggle_value(&mut show_plaintext, "预览").clicked() {
-                                let task_sender = unsafe { TASK_CHANNEL.0.clone() };
-                                TOKIO_RT.spawn(async move {
-                                    if let Err(_) = task_sender.send((id, 0, 0)).await {
-                                        log::info!("receiver dropped");
-                                        return;
-                                    }
-                                });
 
                                 if show_plaintext {
+
+                                    let task_sender = unsafe { TASK_CHANNEL.0.clone() };
+                                    TOKIO_RT.spawn(async move {
+                                        if let Err(_) = task_sender.send((id, 0, 0)).await {
+                                            log::info!("receiver dropped");
+                                            return;
+                                        }
+                                    });
+
                                     let deal_temp = match rander_template(&body) {
                                         Ok(parsed_temp) => parsed_temp,
                                         Err(e) => {

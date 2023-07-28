@@ -5,7 +5,10 @@ use crate::app::TOKIO_RT;
 use crate::component::code_editor::TextEdit;
 use crate::component::header_ui::HeaderUi;
 use crate::component::header_ui::SelectKeyValueItem;
+use crate::component::syntax_highlight::CodeTheme;
 use crate::component::syntax_highlight::code_view_ui;
+use crate::component::syntax_highlight::highlight;
+use crate::component::syntax_highlight::highlight_temp_key;
 use crate::request_data::LoadTestData;
 use crate::request_data::Method;
 use crate::request_data::ResponseData;
@@ -63,9 +66,15 @@ impl RequestUi {
                         ui.selectable_value(method, Method::OPTIONS, "OPTIONS");
                     });
 
+                let mut layouter = |ui: &egui::Ui, string: &str, _wrap_width: f32| {
+                    let layout_job = highlight_temp_key(ui.ctx(), string);
+                    // layout_job.wrap.max_width = wrap_width; // no wrapping
+                    ui.fonts(|f| f.layout_job(layout_job))
+                };
+
                 egui::TextEdit::singleline(url)
                     .desired_width(ui.available_width() - 24.0)
-                    .hint_text("请求路径")
+                    .hint_text("请求路径").layouter(&mut layouter)
                     .show(ui);
                 if send.clicked() {
                     send_state = true;

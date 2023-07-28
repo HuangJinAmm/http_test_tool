@@ -9,6 +9,7 @@ use crate::{
 };
 use egui::WidgetText;
 use egui_dock::TabViewer;
+use log::info;
 use minijinja::value::Value;
 use rhai::{EvalAltResult, Scope};
 
@@ -110,6 +111,7 @@ impl ApiContext {
         if let Some(aip) = self.tests.get(&cid) {
             SCRIPT_ENGINE.run_with_scope(script_scope, &aip.script.pre)?;
         }
+        dbg!(&script_scope);
         let mut script_ctx: HashMap<String, Value> = HashMap::new();
 
         for (name, _is_constant, value) in script_scope.iter() {

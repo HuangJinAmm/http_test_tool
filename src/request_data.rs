@@ -2,6 +2,7 @@ use std::{collections::HashMap, fmt::Debug, str::FromStr};
 
 use crate::{component::header_ui::SelectKeyValueItem, utils::template::rander_template};
 use hdrhistogram::Histogram;
+use log::info;
 use minijinja::value::Value as JValue;
 use reqwest::header::{HeaderMap, HeaderName, HeaderValue};
 #[cfg(not(target_arch = "wasm32"))]
@@ -168,14 +169,15 @@ impl TryInto<Request> for RequestData {
     fn try_into(self) -> Result<Request, Self::Error> {
         let mth_bytes = self.method.to_string();
         let mth = reqwest::Method::from_bytes(mth_bytes.as_bytes()).expect("请求方法解析错误");
-        let url = reqwest::Url::parse(self.url.as_str()).map_err(|e| e.to_string())?;
-
+        let url_tmp = self.url.as_str();
+        let rander_url = rander_template(url_tmp).unwrap_or_else(|_| url_tmp.to_owned());
+        let url = reqwest::Url::parse(&rander_url).map_err(|e| e.to_string())?;
         let headers = self.headers.into_iter().filter(|slk| slk.selected).fold(
             HeaderMap::new(),
             |mut headmap, slk| {
                 let k = HeaderName::from_str(slk.key.as_str()).unwrap();
                 let v: HeaderValue;
-                if slk.value.contains("{{") && slk.value.contains("}}") {
+                if slk.value.contains("${") && slk.value.contains("}") {
                     let parsed_temp =
                         rander_template(&slk.value).unwrap_or_else(|_| slk.value.clone());
                     v = HeaderValue::from_str(&parsed_temp)

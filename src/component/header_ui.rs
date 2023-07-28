@@ -1,7 +1,7 @@
 // use egui::TextEdit;
 // use egui_extras::{Column, TableBuilder};
 
-use super::syntax_highlight::{highlight, CodeTheme};
+use super::syntax_highlight::{highlight, CodeTheme, highlight_temp_key};
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 pub struct SelectKeyValueItem {
@@ -52,10 +52,9 @@ impl HeaderUi {
                     {
                         ui.checkbox(selected, "");
 
-                        let theme = CodeTheme::from_memory(ui.ctx());
 
                         let mut layouter = |ui: &egui::Ui, string: &str, _wrap_width: f32| {
-                            let layout_job = highlight(ui.ctx(), &theme, string, "json");
+                            let layout_job = highlight_temp_key(ui.ctx(), string);
                             // layout_job.wrap.max_width = wrap_width; // no wrapping
                             ui.fonts(|f| f.layout_job(layout_job))
                         };

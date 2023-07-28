@@ -81,7 +81,9 @@ getrandom = { version = "0.2.9", features = ["js"] }
 
 [profile.release]
 opt-level = 'z' # fast and small wasm
-
+lto = true
+panic = 'abort'
+codegen-units = 1
 # Optimize all dependencies even in debug builds:
 [profile.dev.package."*"]
 opt-level = 2

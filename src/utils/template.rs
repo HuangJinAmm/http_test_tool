@@ -145,7 +145,6 @@ fn aes_enc_ctr(
 pub fn rander_template(template: &str) -> Result<String, Error> {
     let mut lock = TEMP_ENV.lock().unwrap();
     let env = lock.borrow_mut();
-
     let tmp = TMP_SCOPE_CTX.read().unwrap().clone();
     let result = env
         .render_str(template, tmp)

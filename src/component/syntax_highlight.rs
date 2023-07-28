@@ -44,6 +44,42 @@ pub fn code_view_ui(ui: &mut egui::Ui, mut code: &str, language: &str) {
             .layouter(&mut layouter),
     );
 }
+pub fn highlight_temp_key(ctx: &egui::Context,mut text: &str) -> LayoutJob {
+    use egui::{Color32, TextFormat};
+    let mut job = LayoutJob::default();
+    let font_id = egui::FontId::monospace(10.0);
+    let key_text_format;
+    let text_format;
+    if ctx.style().visuals.dark_mode {
+        key_text_format = TextFormat::simple(font_id.clone(), Color32::from_rgb(255, 100, 100));
+        // TextFormat = TextFormat::simple(font_id.clone(), Color32::from_rgb(109, 147, 226)),
+        text_format = TextFormat::simple(font_id.clone(), Color32::LIGHT_GRAY);
+    } else {
+        key_text_format = TextFormat::simple(font_id.clone(), Color32::from_rgb(235, 0, 0));
+        text_format = TextFormat::simple(font_id.clone(), Color32::DARK_GRAY);
+    }
+        
+    while !text.is_empty() {
+        if text.starts_with("${") && text.contains("}") {
+            if let Some(end) = text.find('}').map(|l|l+1){
+                job.append(&text[..end], 0.0, key_text_format.clone());
+                text = &text[end..];
+            }
+        } else {
+            let mut it = text.char_indices();
+            it.next();
+            let end = it.next().map_or(text.len(), |(idx, _chr)| idx);
+            job.append(
+                &text[..end],
+                0.0,
+                text_format.clone()
+            );
+            text = &text[end..];
+        }
+    }
+
+    job
+}
 
 /// Memoized Code highlighting
 pub fn highlight(ctx: &egui::Context, theme: &CodeTheme, code: &str, language: &str) -> LayoutJob {

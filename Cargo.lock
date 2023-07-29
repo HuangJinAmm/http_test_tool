@@ -729,49 +729,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "eframe_template"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "base64 0.21.2",
- "catppuccin-egui",
- "cc",
- "chrono",
- "console_error_panic_hook",
- "eframe",
- "egui",
- "egui-notify",
- "egui_commonmark",
- "egui_dnd",
- "egui_dock",
- "egui_file",
- "egui_logger",
- "enum-map",
- "fake",
- "futures",
- "getrandom",
- "hdrhistogram",
- "json5",
- "json5format",
- "log",
- "minijinja",
- "once_cell",
- "rand 0.8.5",
- "reqwest",
- "rhai",
- "rust-crypto",
- "serde",
- "serde_json",
- "syntect",
- "tokio",
- "tokio-stream",
- "tracing-wasm",
- "uuid",
- "wasm-bindgen-futures",
- "weighted_trie",
-]
-
-[[package]]
 name = "egui"
 version = "0.22.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1419,6 +1376,49 @@ dependencies = [
  "bytes",
  "http",
  "pin-project-lite",
+]
+
+[[package]]
+name = "http_test_tool"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "base64 0.21.2",
+ "catppuccin-egui",
+ "cc",
+ "chrono",
+ "console_error_panic_hook",
+ "eframe",
+ "egui",
+ "egui-notify",
+ "egui_commonmark",
+ "egui_dnd",
+ "egui_dock",
+ "egui_file",
+ "egui_logger",
+ "enum-map",
+ "fake",
+ "futures",
+ "getrandom",
+ "hdrhistogram",
+ "json5",
+ "json5format",
+ "log",
+ "minijinja",
+ "once_cell",
+ "rand 0.8.5",
+ "reqwest",
+ "rhai",
+ "rust-crypto",
+ "serde",
+ "serde_json",
+ "syntect",
+ "tokio",
+ "tokio-stream",
+ "tracing-wasm",
+ "uuid",
+ "wasm-bindgen-futures",
+ "weighted_trie",
 ]
 
 [[package]]

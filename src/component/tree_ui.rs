@@ -413,7 +413,7 @@ impl TreeUiNode {
                         });
                     }
 
-                    ui.label(RichText::new(format!("(🆔:{})", self.id)).color(egui::Color32::RED));
+                    ui.label(RichText::new(format!("(🆔:{})", self.id)).color(egui::Color32::LIGHT_RED));
                     let mut context_resp = Option::None;
                     let select_resp = ui
                         .toggle_value(&mut selected, self.title.clone())

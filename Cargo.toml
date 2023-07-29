@@ -1,5 +1,5 @@
 [package]
-name = "eframe_template"
+name = "http_test_tool"
 version = "0.1.0"
 authors = ["huangjin"]
 edition = "2021"

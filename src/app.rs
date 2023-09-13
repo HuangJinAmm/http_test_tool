@@ -178,6 +178,7 @@ impl TemplateApp {
     }
 
     fn send_request(&self, req: &RequestData, id: u64) {
+        info!("发送请求：{},{}",req.method.to_string(),&req.url);
         let req = req.clone();
         TOKIO_RT.spawn(async move {
             let start = Local::now().timestamp_millis();

@@ -33,9 +33,24 @@ macro_rules! register_shotcut {
     };
 }
 
+macro_rules! gen_suggest {
+    ($($item:literal $(=> $value:expr)?),*) => {
+        {
+            let mut sug = AutoSuggester::default();
+            $(
+                insert_suggest!(sug,$item $(,$value)?);
+            )*
+            sug
+        }
+    };
+}
+
 macro_rules! insert_suggest {
     ($sug:ident,$s:expr) => {
         $sug.insert($s.to_owned(), Box::new(|_s| $s.to_owned()), 1);
+    };
+    ($sug:ident,$key:literal,$l:literal) => {
+        $sug.insert($key.to_owned(), Box::new(|_s| $l.to_owned()), 1);
     };
     ($sug:ident,$key:expr,$fun:expr) => {
         $sug.insert($key.to_owned(), Box::new($fun), 1);
@@ -44,78 +59,7 @@ macro_rules! insert_suggest {
 
 impl Default for TextEdit {
     fn default() -> Self {
-        let mut sug = AutoSuggester::default();
-        insert_suggest!(sug, "type_of", |_s| "type_of()".to_owned());
-        insert_suggest!(sug, "true");
-        insert_suggest!(sug, "false");
-        insert_suggest!(sug, "let");
-        insert_suggest!(sug, "const");
-        insert_suggest!(sug, "curry");
-        insert_suggest!(sug, "return");
-        insert_suggest!(sug, "throw");
-
-        insert_suggest!(sug, "faker::zh_name", |_s| "faker::zh_name()".to_owned());
-        insert_suggest!(sug, "faker::en_name", |_s| "faker::en_name()".to_owned());
-        insert_suggest!(sug, "faker::hex_str", |_s| "faker::hex_str(0,10)"
-            .to_owned());
-        insert_suggest!(sug, "faker::str", |_s| "faker::str(0,10)".to_owned());
-        insert_suggest!(sug, "faker::num_str", |_s| "faker::num_str(0,100)"
-            .to_owned());
-        insert_suggest!(sug, "faker::num", |_s| "faker::num(0,100)".to_owned());
-
-        insert_suggest!(sug, "faker::email", |_s| "faker::email()".to_owned());
-        insert_suggest!(sug, "faker::username", |_s| "faker::username()".to_owned());
-        insert_suggest!(sug, "faker::ip4", |_s| "faker::ip4()".to_owned());
-        insert_suggest!(sug, "faker::ip6", |_s| "faker::ip6()".to_owned());
-        insert_suggest!(sug, "faker::useragent", |_s| "faker::useragent()"
-            .to_owned());
-        insert_suggest!(sug, "faker::mac", |_s| "faker::mac()".to_owned());
-        insert_suggest!(sug, "faker::password", |_s| "faker::password()".to_owned());
-        insert_suggest!(sug, "faker::uuid", |_s| "faker::uuid()".to_owned());
-        insert_suggest!(sug, "faker::uuid_simple", |_s| "faker::uuid_simple()"
-            .to_owned());
-
-        insert_suggest!(sug, "faker::now", |_s| "faker::now(\"%Y-%m-%dT%H:%M:%S\")"
-            .to_owned());
-
-        insert_suggest!(sug, "faker::datetime", |_s| {
-            "faker::datetime(\"%Y-%m-%dT%H:%M:%S\")".to_owned()
-        });
-        insert_suggest!(sug, "faker::datetime_after", |_s| {
-            "faker::datetime_after(\"%Y-%m-%dT%H:%M:%S\",\"2020-05-03T00:00:00\")".to_owned()
-        });
-        insert_suggest!(sug, "faker::datetime_before", |_s| {
-            "faker::datetime_before(\"%Y-%m-%dT%H:%M:%S\",\"2020-05-03T00:00:00\")".to_owned()
-        });
-        insert_suggest!(sug, "faker::date_add", |_s| {
-            "faker::date_add(\"%Y-%m-%dT%H:%M:%S\",\"2020-05-03T00:00:00\")".to_owned()
-        });
-
-        insert_suggest!(sug, "log::info", |_s| { r#"log::info("msg")"#.to_owned() });
-        insert_suggest!(sug, "log::error", |_s| { "log::error(\"msg\")".to_owned() });
-        insert_suggest!(sug, "log::debug", |_s| { "log::debug(\"msg\")".to_owned() });
-        // insert_suggest!(sug, "log::info", |_s| { "log::info("msg")".to_owned() });
-        insert_suggest!(sug, "log::warn", |_s| { "log::warn(\"msg\")".to_owned() });
-
-        insert_suggest!(sug, "base64::encode", |_s| {
-            "base64::encode(msg)".to_owned()
-        });
-        insert_suggest!(sug, "base64::decode", |_s| {
-            "base64::decode(msg)".to_owned()
-        });
-
-        insert_suggest!(sug, "crypto::Aes::encode_cbc", |_s| {
-            "crypto::Aes::encode_cbc(key,input,iv);".to_owned()
-        });
-        insert_suggest!(sug, "crypto::Aes::decode_cbc", |_s| {
-            "crypto::Aes::decode_cbc(key,input,iv);".to_owned()
-        });
-
-        insert_suggest!(sug, "trycatch", |_s| {
-            "try { \n } catch ( err) { \n log::error(err)\n}".to_owned()
-        });
-        insert_suggest!(sug, "ifelse", |_s| { "if {\\n} \\nelse {\n\n}".to_owned() });
-        insert_suggest!(sug, "switch", |_s| { "switch EXPR {\\n}\\n".to_owned() });
+        let sug = AutoSuggester::default();
         Self {
             language: "json".to_owned(),
             suggest: sug,
@@ -132,6 +76,53 @@ impl TextEdit {
         Self {
             language: lang.to_owned(),
             ..Default::default()
+        }
+    }
+    pub fn new_md() -> Self {
+        let sug = AutoSuggester::mark_down();
+        Self {
+            language: "md".to_owned(),
+            suggest: sug,
+            sug_pos: None,
+            selected_sug: "".to_owned(),
+            sug_str: None,
+            selected_range: None,
+        }
+    }
+
+    pub fn new_json() -> Self {
+        let sug = AutoSuggester::json_schema();
+        Self {
+            language: "json5".to_owned(),
+            suggest: sug,
+            sug_pos: None,
+            selected_sug: "".to_owned(),
+            sug_str: None,
+            selected_range: None,
+        }
+    }
+
+    pub fn new_rhai() -> Self {
+        let sug = AutoSuggester::rhai();
+        Self {
+            language: "rs".to_owned(),
+            suggest: sug,
+            sug_pos: None,
+            selected_sug: "".to_owned(),
+            sug_str: None,
+            selected_range: None,
+        }
+    }
+
+    pub fn new_template() -> Self {
+        let sug = AutoSuggester::template();
+        Self {
+            language: "json".to_owned(),
+            suggest: sug,
+            sug_pos: None,
+            selected_sug: "".to_owned(),
+            sug_str: None,
+            selected_range: None,
         }
     }
 
@@ -302,8 +293,17 @@ impl TextEdit {
                     //处理建议弹框
                     let preword = Self::get_pre_word(text, text_cursor_range);
 
-                    if let Some((word, word_range)) = preword {
-                        *sug_str = Some(suggest.search(&word));
+                    if let Some((word, mut word_range)) = preword {
+                        let sug_word;
+                        if word.starts_with("\"") || word.starts_with("'") || word.starts_with("{") {
+                            sug_word = &word[1..];
+                            word_range.start += 1;
+                            *selected_range = Some(word_range);
+                        } else {
+                            sug_word = &word[..];
+                            *selected_range = Some(word_range);
+                        }
+                        *sug_str = Some(suggest.search(sug_word));
                         if sug_str.as_ref().unwrap().len() > 0 && sug_pos.is_none() {
                             if let Some(pos) = ui.input(|p| p.pointer.hover_pos()) {
                                 *sug_pos = Some(pos);
@@ -312,7 +312,6 @@ impl TextEdit {
                         if sug_str.as_ref().unwrap().len() == 0 {
                             *sug_pos = None;
                         }
-                        *selected_range = Some(word_range);
                     }
                 }
             }
@@ -424,6 +423,195 @@ impl Default for AutoSuggester {
 }
 
 impl AutoSuggester {
+    pub fn rhai() -> Self {
+        let mut sug = AutoSuggester::default();
+        insert_suggest!(sug, "type_of", |_s| "type_of()".to_owned());
+        insert_suggest!(sug, "true");
+        insert_suggest!(sug, "false");
+        insert_suggest!(sug, "let");
+        insert_suggest!(sug, "const");
+        insert_suggest!(sug, "curry");
+        insert_suggest!(sug, "return");
+        insert_suggest!(sug, "throw");
+
+        insert_suggest!(sug, "faker::zh_name", |_s| "faker::zh_name()".to_owned());
+        insert_suggest!(sug, "faker::en_name", |_s| "faker::en_name()".to_owned());
+        insert_suggest!(sug, "faker::hex_str", |_s| "faker::hex_str(0,10)"
+            .to_owned());
+        insert_suggest!(sug, "faker::str", |_s| "faker::str(0,10)".to_owned());
+        insert_suggest!(sug, "faker::num_str", |_s| "faker::num_str(0,100)"
+            .to_owned());
+        insert_suggest!(sug, "faker::num", |_s| "faker::num(0,100)".to_owned());
+
+        insert_suggest!(sug, "faker::email", |_s| "faker::email()".to_owned());
+        insert_suggest!(sug, "faker::username", |_s| "faker::username()".to_owned());
+        insert_suggest!(sug, "faker::ip4", |_s| "faker::ip4()".to_owned());
+        insert_suggest!(sug, "faker::ip6", |_s| "faker::ip6()".to_owned());
+        insert_suggest!(sug, "faker::useragent", |_s| "faker::useragent()"
+            .to_owned());
+        insert_suggest!(sug, "faker::mac", |_s| "faker::mac()".to_owned());
+        insert_suggest!(sug, "faker::password", |_s| "faker::password()".to_owned());
+        insert_suggest!(sug, "faker::uuid", |_s| "faker::uuid()".to_owned());
+        insert_suggest!(sug, "faker::uuid_simple", |_s| "faker::uuid_simple()"
+            .to_owned());
+
+        insert_suggest!(sug, "faker::now", |_s| "faker::now(\"$Y-%m-%dT%H:%M:%S\")"
+            .to_owned());
+
+        insert_suggest!(sug, "faker::datetime", |_s| {
+            "faker::datetime(\"$Y-%m-%dT%H:%M:%S\")".to_owned()
+        });
+        insert_suggest!(sug, "faker::datetime_after", |_s| {
+            "faker::datetime_after(\"$Y-%m-%dT%H:%M:%S\",\"2020-05-03T00:00:00\")".to_owned()
+        });
+        insert_suggest!(sug, "faker::datetime_before", |_s| {
+            "faker::datetime_before(\"$Y-%m-%dT%H:%M:%S\",\"2020-05-03T00:00:00\")".to_owned()
+        });
+        insert_suggest!(sug, "faker::date_add", |_s| {
+            "faker::date_add(\"$Y-%m-%dT%H:%M:%S\",\"2020-05-03T00:00:00\")".to_owned()
+        });
+
+        insert_suggest!(sug, "log::info", |_s| { r#"log::info("msg")"#.to_owned() });
+        insert_suggest!(sug, "log::error", |_s| { "log::error(\"msg\")".to_owned() });
+        insert_suggest!(sug, "log::debug", |_s| { "log::debug(\"msg\")".to_owned() });
+        // insert_suggest!(sug, "log::info", |_s| { "log::info("msg")".to_owned() });
+        insert_suggest!(sug, "log::warn", |_s| { "log::warn(\"msg\")".to_owned() });
+
+        insert_suggest!(sug, "base64::encode", |_s| {
+            "base64::encode(msg)".to_owned()
+        });
+        insert_suggest!(sug, "base64::decode", |_s| {
+            "base64::decode(msg)".to_owned()
+        });
+
+        insert_suggest!(sug, "crypto::Aes::encode_cbc", |_s| {
+            "crypto::Aes::encode_cbc(key,input,iv);".to_owned()
+        });
+        insert_suggest!(sug, "crypto::Aes::decode_cbc", |_s| {
+            "crypto::Aes::decode_cbc(key,input,iv);".to_owned()
+        });
+
+        insert_suggest!(sug, "trycatch", |_s| {
+            "try { \n } catch ( err) { \n log::error(err)\n}".to_owned()
+        });
+        insert_suggest!(sug, "ifelse", |_s| { "if {\\n} \\nelse {\n\n}".to_owned() });
+        insert_suggest!(sug, "switch", |_s| { "switch EXPR {\\n}\\n".to_owned() });
+        sug
+    }
+    pub fn mark_down() -> Self {
+        gen_suggest!(
+            "/table" => r"
+            |h1|h2|h3|
+            |---|---|---|
+            |column1|column2|col3|
+            ",
+            "/todo" => " - [ ] ",
+            "/h1" => "# head1",
+            "/h2" => "## head2",
+            "/h3" => "### head3",
+            "/h4" => "#### head4",
+            "/h5" => "##### head5",
+            "/h6" => "###### head6",
+            "/code" => "\r\n```\r\n```\r\n",
+            "/img" => "![alt 属性文本](图片地址)",
+            "/link" => "[title](url)"
+        )
+    }
+
+    pub fn template() -> Self {
+        let sug = gen_suggest!(
+            "NAME_ZH" => "${NAME_ZH()}",
+            "NAME_EN" => "${NAME_EN()}",
+            "NUM" => "${NUM()}",
+            "NUM_STR" => "${NUM_STR()}",
+            "HEX" => "${HEX()}",
+            "STR" => "${STR()}",
+            "EMAIL" => "${EMAIL()}",
+            "USERNAME" => "${USERNAME()}",
+            "IPV4" => "${IPV4()}",
+            "IPV6" => "${IPV6()}",
+            "MAC" => "${MAC()}",
+            "USERAGENT" => "${USERAGENT()}",
+            "PASSWORD" => "${PASSWORD()}",
+
+            "UUID" => "${UUID()}",
+            "UUID_SIMPLE" => "${UUID_SIMPLE()}",
+
+            "NOW" => "${NOW()}",
+            "DATE_BEFORE" => "${DATE_BEFORE()}",
+            "DATE_AFTER" => "${DATE_AFTER()}",
+            "DATE" => "${DATE()}",
+            "DATE_ADD" => "${DATE_ADD()}",
+
+            "AES_ECB_EN" => "${AES_ECB_EN()}",
+            "AES_ECB_DE" => "${AES_ECB_DE()}",
+            "AES_CBC_EN" => "${AES_CBC_EN()}",
+            "AES_CBC_DE" => "${AES_CBC_DE()}",
+            "AES_CTR_EN" => "${AES_CTR_EN()}",
+            "AES_CTR_DE" => "${AES_CTR_DE()}",
+
+            "BASE64_EN" => "${BASE64_EN()}",
+            "BASE64_DE" => "${BASE64_DE()}",
+
+            "base64Encode" => "base64Encode",
+            "AesEcbEnc" => "AesEcbEnc",
+            "AesCbcEnc" => "AesCbcEnc",
+            "AesCtrEnc" => "AesCtrEnc",
+            "INT" => "INT"
+        );
+        sug
+    }
+
+    pub fn json_schema() -> Self {
+        let sug = gen_suggest!(
+            "type",
+            "enum",
+            "const",
+            "string",
+            "number",
+            "integer",
+            "object",
+            "array",
+            "boolean",
+            "null",
+            "required",
+            "minLength",
+            "maxLength",
+            "pattern",
+            "minimum",
+            "maximum",
+            "exclusiveMinimum",
+            "exclusiveMaximum",
+            "object@" => r#"{
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string" }
+                },
+                "required": ["name"]
+              }"#,
+            "array@" => r#"{
+                "type": "array",
+                "items": {
+                  "type": "number"
+                }
+              }"#,
+            "string@partten" => r#"{
+                "type": "string",
+                "pattern": "^(\\([0-9]{3}\\))?[0-9]{3}-[0-9]{4}$"
+             }"#,
+            "string@len" => r#"{
+                "type": "string",
+                "minLength": 2,
+                "maxLength": 3
+              }"#,
+              "string@format" => r#"{
+                "type": "string",
+                "format": "uuid"
+             }"#
+        );
+        sug
+    }
+
     pub fn insert(&mut self, key: String, aciton: Box<dyn Fn(&str) -> String>, weight: i32) {
         self.trie.insert(key.clone(), weight);
         self.action.insert(key, aciton);
@@ -439,7 +627,6 @@ impl AutoSuggester {
 }
 
 fn toggle_case(s: &str) -> String {
-    dbg!(s);
     let upper_case = s.to_uppercase();
     let new_text = if s == upper_case {
         s.to_lowercase()
@@ -461,4 +648,21 @@ fn add_brackets(s: &str) -> String {
 
 fn add_quoter(s: &str) -> String {
     "\"".to_owned() + s + "\""
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_macro() {
+        let sug = gen_suggest!(
+            "key" => "key",
+            "keys",
+            "key1" => |_s| "faker::zh_name()".to_owned()
+        );
+        println!("{}", sug.get_action("key").unwrap()("ss"));
+        println!("{}", sug.get_action("keys").unwrap()("ss"));
+        println!("{}", sug.get_action("key1").unwrap()("ss"));
+    }
 }

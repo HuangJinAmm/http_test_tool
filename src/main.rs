@@ -14,7 +14,7 @@ fn main() -> eframe::Result<()> {
     let icon = IconData::try_from_png_bytes(include_bytes!("../http.png")).unwrap();
     native_options.icon_data = Some(icon);
     eframe::run_native(
-        "eframe template",
+        "Http测试工具",
         native_options,
         Box::new(|cc| Box::new(http_test_tool::TemplateApp::new(cc))),
     )

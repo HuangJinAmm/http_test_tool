@@ -28,12 +28,18 @@ use egui::RichText;
 use egui_commonmark::CommonMarkCache;
 use egui_commonmark::CommonMarkViewer;
 use serde_json::Value;
-#[derive(Default)]
 pub struct RequestUi {
     pub editor: TextEdit,
 }
 
+impl Default for RequestUi {
+    fn default() -> Self {
+        Self { editor: TextEdit::new_template() }
+    }
+}
+
 impl RequestUi {
+
     pub fn ui(&mut self, ui: &mut egui::Ui, request_data: &mut RequestData, id: u64) {
         let RequestData {
             remark,
@@ -222,10 +228,16 @@ impl RequestUi {
     }
 }
 
-#[derive(Default)]
 pub struct CollectionUi {
     script_editor: TextEdit,
+    md_editor: TextEdit,
     cache: CommonMarkCache,
+}
+
+impl Default for CollectionUi {
+    fn default() -> Self {
+        Self { script_editor: TextEdit::new_rhai(), md_editor: TextEdit::new_md(), cache: Default::default() }
+    }
 }
 
 impl CollectionUi {
@@ -262,7 +274,7 @@ impl CollectionUi {
                 if preview_state {
                     CommonMarkViewer::new("viewer").show(ui, &mut self.cache, &doc);
                 } else {
-                    self.script_editor.ui(ui, doc, id);
+                    self.md_editor.ui(ui, doc, id);
                 }
             });
         });
@@ -277,7 +289,7 @@ pub struct ScriptUi {
 impl Default for ScriptUi {
     fn default() -> Self {
         ScriptUi {
-            pre_script_editor: TextEdit::new("rs"),
+            pre_script_editor: TextEdit::new_rhai()
         }
     }
 }

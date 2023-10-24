@@ -1,5 +1,10 @@
 use std::collections::{BTreeMap, HashMap};
+use std::sync::Mutex;
+use std::sync::Arc;
+use std::time::Duration;
 
+use crate::app::TOASTS;
+use crate::component::tree_ui::{TreeUi, self};
 use crate::ui::request_ui::{CollectionUi, LoadTestDiagram, LoadTestUi, ScriptUi};
 use crate::utils::rhai_script::SCRIPT_ENGINE;
 use crate::utils::template::{add_global_var, TMP_SCOPE_CTX};
@@ -9,6 +14,7 @@ use crate::{
 };
 use egui::WidgetText;
 use egui_dock::TabViewer;
+use egui_notify::Toasts;
 use log::info;
 use minijinja::value::Value;
 use rhai::{EvalAltResult, Scope};
@@ -18,6 +24,7 @@ pub struct ApiContext {
     pub selected: Vec<u64>,
     pub tests: BTreeMap<u64, ApiTester>,
     pub collections: BTreeMap<u64, CollectionsData>,
+    tree_ui: TreeUi,
     #[serde(skip)]
     req_ui: RequestUi,
     #[serde(skip)]
@@ -29,14 +36,16 @@ impl TabViewer for ApiContext {
     type Tab = String;
 
     fn ui(&mut self, ui: &mut egui::Ui, tab: &mut Self::Tab) {
+        let toast = TOASTS.get_or_init(|| {
+            Arc::new(Mutex::new(
+                Toasts::default().with_anchor(egui_notify::Anchor::BottomRight),
+            ))
+        });
         let selected = *self.selected.first().unwrap_or(&0);
         match tab.as_str() {
             "请求" => {
                 if let Some(req_data) = self.tests.get_mut(&selected) {
                     self.req_ui.ui(ui, &mut req_data.req, selected);
-                }
-                if let Some(collect_data) = self.collections.get_mut(&selected) {
-                    self.col_ui.ui(ui, collect_data, selected);
                 }
             }
             "响应" => {
@@ -56,21 +65,91 @@ impl TabViewer for ApiContext {
                     LoadTestDiagram::ui(ui, &req_data.load_test)
                 }
             }
-            "记录" => {}
-            "脚本" => {
-                if let Some(req_data) = self.tests.get_mut(&selected) {
-                    self.script_ui.ui(ui, &mut req_data.script, selected);
+            "文档" => {
+                if let Some(collect_data) = self.collections.get_mut(&selected) {
+                    self.col_ui.ui(ui, &mut collect_data.doc, selected);
                 }
+                if let Some(req_data) = self.tests.get_mut(&selected) {
+                    self.col_ui.ui(ui, &mut req_data.req.remark, selected);
+                }
+            }
+            "后置脚本" => {
+                if let Some(req_data) = self.tests.get_mut(&selected) {
+                    self.script_ui.ui(ui, &mut req_data.script.after, selected);
+                }
+            }
+            "前置脚本" => {
+                if let Some(req_data) = self.tests.get_mut(&selected) {
+                    self.script_ui.ui(ui, &mut req_data.script.pre, selected);
+                }
+                if let Some(collect_data) = self.collections.get_mut(&selected) {
+                    self.script_ui.ui(ui, &mut collect_data.script, selected);
+                }
+            }
+            "导航" => {
+                egui::ScrollArea::both().show(ui, |ui| {
+                    // ui.with_layout(Layout::top_down(egui::Align::LEFT), |ui|{
+                    match self.tree_ui.ui_impl(ui) {
+                        tree_ui::Action::Keep => {
+                            //ignore
+                        }
+                        tree_ui::Action::Delete(dels) => {
+                            for del_id in dels {
+                                info!("删除{}", del_id);
+                                self.delete_collecton(del_id);
+                                self.delete_test(del_id);
+                            }
+                        }
+                        tree_ui::Action::Add((adds, node_type)) => {
+                            let add_id = adds.first().unwrap().to_owned();
+                            info!("添加{},{:?}", &add_id, &node_type);
+                            match node_type {
+                                tree_ui::NodeType::Collection => {
+                                    self.insert_collecton(add_id, CollectionsData::default());
+                                }
+                                tree_ui::NodeType::Node => {
+                                    self.insert_test(add_id, ApiTester::default());
+                                }
+                            }
+                        }
+                        tree_ui::Action::Rename(_adds) => {
+                            //基本上不用处理
+                            info!("重命名")
+                        }
+                        tree_ui::Action::Selected((selected_id, selected_title)) => {
+                            let selected = *selected_id.first().unwrap_or(&0);
+                            self.selected = selected_id;
+                            if let Ok(mut toast_w) = toast.lock() {
+                                toast_w
+                                    .info(format!("已选中{}-标题{}", selected, selected_title))
+                                    .set_duration(Some(Duration::from_secs(5)));
+                            }
+                        }
+                        tree_ui::Action::Copy(cop) => {
+                            if let Ok(mut toast_w) = toast.lock() {
+                                toast_w
+                                    .info(format!("已复制{}", cop.0))
+                                    .set_duration(Some(Duration::from_secs(5)));
+                            }
+                        }
+                        tree_ui::Action::Parse(mut parse) => {
+                            //复制动作
+                            let _ = parse.pop();
+                            if let Some((sid, did)) = self.tree_ui.parse_node(parse) {
+                                if let Some(copyed) = self.tests.get(&sid) {
+                                    let parse = copyed.clone();
+                                    self.insert_test(did, parse);
+                                }
+                            }
+                        }
+                    }
+                    ui.add_space(ui.available_height());
+                });
+                //    });
             }
             _ => {
                 ui.label(tab.as_str());
             }
-        }
-    }
-
-    fn context_menu(&mut self, _ui: &mut egui::Ui, tab: &mut Self::Tab) {
-        match tab {
-            _ => {}
         }
     }
 
@@ -84,12 +163,57 @@ impl TabViewer for ApiContext {
         // }
         true
     }
+
+    // fn context_menu(
+    //     &mut self,
+    //     ui: &mut egui::Ui,
+    //     tab: &mut Self::Tab,
+    //     surface: egui_dock::SurfaceIndex,
+    //     node: egui_dock::NodeIndex,
+    // ) {
+        
+    // }
+
+    fn id(&mut self, tab: &mut Self::Tab) -> egui::Id {
+        egui::Id::new(self.title(tab).text())
+    }
+
+    fn on_tab_button(&mut self, _tab: &mut Self::Tab, _response: &egui::Response) {}
+
+    fn closeable(&mut self, _tab: &mut Self::Tab) -> bool {
+        true
+    }
+
+    fn on_add(&mut self, _surface: egui_dock::SurfaceIndex, _node: egui_dock::NodeIndex) {}
+
+    fn add_popup(&mut self, _ui: &mut egui::Ui, _surface: egui_dock::SurfaceIndex, _node: egui_dock::NodeIndex) {}
+
+    fn force_close(&mut self, _tab: &mut Self::Tab) -> bool {
+        false
+    }
+
+    fn tab_style_override(&self, _tab: &Self::Tab, _global_style: &egui_dock::TabStyle) -> Option<egui_dock::TabStyle> {
+        None
+    }
+
+    fn allowed_in_windows(&self, _tab: &mut Self::Tab) -> bool {
+        true
+    }
+
+    fn clear_background(&self, _tab: &Self::Tab) -> bool {
+        true
+    }
+
+    fn scroll_bars(&self, _tab: &Self::Tab) -> [bool; 2] {
+        [true, true]
+    }
 }
 
 impl ApiContext {
     pub fn new() -> Self {
         Self {
             tests: BTreeMap::new(),
+            tree_ui: TreeUi::new(),
             collections: BTreeMap::new(),
             req_ui: RequestUi::default(),
             selected: vec![0],
@@ -176,7 +300,6 @@ pub struct ApiTester {
 
 #[derive(Debug, Default, Clone, serde::Deserialize, serde::Serialize)]
 pub struct CollectionsData {
-    pub remark: String,
     pub doc: String,
     pub script: String,
 }

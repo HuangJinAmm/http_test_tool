@@ -18,15 +18,15 @@ use crate::{
     api_context::CollectionsData, component::editeable_label::editable_label,
     request_data::RequestData,
 };
-use egui::plot::Bar;
-use egui::plot::BarChart;
-use egui::plot::Legend;
-use egui::plot::Line;
-use egui::plot::Plot;
 use egui::Color32;
 use egui::RichText;
 use egui_commonmark::CommonMarkCache;
 use egui_commonmark::CommonMarkViewer;
+use egui_plot::Bar;
+use egui_plot::BarChart;
+use egui_plot::Legend;
+use egui_plot::Line;
+use egui_plot::Plot;
 use serde_json::Value;
 pub struct RequestUi {
     pub editor: TextEdit,
@@ -53,7 +53,7 @@ impl RequestUi {
         let mut send_state = ui.data_mut(|d| d.get_temp::<bool>(req_id).unwrap_or(false));
 
         ui.vertical(|ui| {
-            ui.add(editable_label(remark));
+            // ui.add(editable_label(remark));
             ui.horizontal(|ui| {
                 let send = ui
                     .add_enabled_ui(!send_state, |ui| {
@@ -229,56 +229,33 @@ impl RequestUi {
 }
 
 pub struct CollectionUi {
-    script_editor: TextEdit,
+    preview:bool,
     md_editor: TextEdit,
     cache: CommonMarkCache,
 }
 
 impl Default for CollectionUi {
     fn default() -> Self {
-        Self { script_editor: TextEdit::new_rhai(), md_editor: TextEdit::new_md(), cache: Default::default() }
+        Self {preview:false, md_editor: TextEdit::new_md(), cache: Default::default() }
     }
 }
 
 impl CollectionUi {
-    pub fn ui(&mut self, ui: &mut egui::Ui, data: &mut CollectionsData, id: u64) {
-        let CollectionsData {
-            remark,
-            script,
-            doc,
-        } = data;
-        let req_id = ui.id().with(id);
-        let mut preview_state = ui.data_mut(|d| d.get_temp::<bool>(req_id).unwrap_or(false));
+    pub fn ui(&mut self, ui: &mut egui::Ui, data: &mut String, id: u64) {
         ui.vertical(|ui| {
-            ui.add(editable_label(remark));
-            ui.collapsing("脚本", |ui| {
-                self.script_editor.ui(ui, script, id);
-            });
-
-            let id_source = ui.make_persistent_id("net_test_collection_ui");
-            egui::collapsing_header::CollapsingState::load_with_default_open(
-                ui.ctx(),
-                id_source,
-                false,
-            )
-            .show_header(ui, |ui| {
-                ui.horizontal(|ui| {
-                    ui.label("文档");
-                    let add_header = ui.small_button("预览");
-                    if add_header.clicked() {
-                        preview_state = !preview_state;
-                    }
-                });
-            })
-            .body(|ui| {
-                if preview_state {
-                    CommonMarkViewer::new("viewer").show(ui, &mut self.cache, &doc);
-                } else {
-                    self.md_editor.ui(ui, doc, id);
+            ui.horizontal(|ui| {
+                ui.label("文档");
+                let add_header = ui.small_button("预览");
+                if add_header.clicked() {
+                    self.preview= !self.preview;
                 }
             });
+            if self.preview {
+                CommonMarkViewer::new("viewer").show(ui, &mut self.cache, data);
+            } else {
+                self.md_editor.ui(ui, data, id);
+            }
         });
-        ui.data_mut(|d| d.insert_temp(req_id, preview_state));
     }
 }
 
@@ -295,16 +272,8 @@ impl Default for ScriptUi {
 }
 
 impl ScriptUi {
-    pub fn ui(&mut self, ui: &mut egui::Ui, data: &mut ScriptData, id: u64) {
-        let ScriptData { pre, after } = data;
-        ui.vertical(|ui| {
-            ui.collapsing("前置脚本", |ui| {
-                self.pre_script_editor.ui(ui, pre, id);
-            });
-            ui.collapsing("后置脚本", |ui| {
-                self.pre_script_editor.ui(ui, after, id);
-            });
-        });
+    pub fn ui(&mut self, ui: &mut egui::Ui, data: &mut String, id: u64) {
+        self.pre_script_editor.ui(ui, data, id);
     }
 }
 
@@ -492,7 +461,7 @@ impl LoadTestDiagram {
                 let all_h = ui.available_height();
                 ui.set_max_height(all_h / 2.0);
                 let sin = data.iter().enumerate().map(|(x, y)| [x as f64, *y as f64]);
-                let line = Line::new(egui::plot::PlotPoints::from_iter(sin));
+                let line = Line::new(egui_plot::PlotPoints::from_iter(sin));
                 Plot::new("runing")
                     .data_aspect(1.0)
                     .show(ui, |plot_ui| plot_ui.line(line));

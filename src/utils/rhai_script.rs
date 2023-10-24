@@ -152,7 +152,7 @@ mod sfaker {
     }
 
     // #[rhai_fn(name = "")]
-    pub fn hex_str(low: i64, mut high: i64) -> String {
+    pub fn hex_str(low: i64, high: i64) -> String {
         let low: usize = low.try_into().unwrap_or_default();
         let mut high: usize = high.try_into().unwrap_or_default();
         if high <= low {
@@ -184,7 +184,7 @@ mod sfaker {
         a
     }
 
-    pub fn num(low: i64, mut high: i64) -> i64 {
+    pub fn num(low: i64, high: i64) -> i64 {
         let low: usize = low.try_into().unwrap_or_default();
         let mut high: usize = high.try_into().unwrap_or_default();
         if high <= low {

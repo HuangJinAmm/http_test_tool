@@ -10,23 +10,25 @@ default = ["syntect"]
 syntect = ["dep:syntect"]
 
 [dependencies]
-egui = "0.22.0"
+egui = "0.23.0"
+egui_plot = "0.23.0"
 # egui_extras = "0.22.0"
-eframe = { version = "0.22.0", default-features = false, features = [
+eframe = { version = "0.23.0", default-features = false, features = [
     # "accesskit",     # Make egui comptaible with screen readers. NOTE: adds a lot of dependencies.
     # "default_fonts", # Embed the default egui fonts.
     "glow",          # Use the glow rendering backend. Alternative: "wgpu".
     # "wayland",
     "persistence",   # Enable restoring app state when restarting the app.
 ] }
-egui_commonmark = {version = "0.7.3",features=["syntax_highlighting","svg","fetch"]}
-egui_logger="0.3.1"
-egui_file="0.9.0"
+egui_commonmark = {version = "0.9.0",features=["default","better_syntax_highlighting","svg","fetch"]}
+egui_logger="0.4.0"
+egui_file="0.11.0"
 # egui-datepicker = "0.3"
-egui_dnd = "0.4.0"
-egui-notify = "0.7.0"
-egui_dock ={version="0.6.3", features=["serde"]}
-catppuccin-egui ="3.0.0"
+egui_dnd = "0.5.1"
+egui-notify = "0.10.0"
+egui_dock ={version="0.8.1", features=["serde"]}
+# catppuccin-egui ="3.1.0"
+catppuccin-egui ={git= "https://github.com/catppuccin/egui"}
 
 log = "0.4.17"
 
@@ -50,8 +52,8 @@ uuid = {version = "1.1.2", features = [ "v4","fast-rng","macro-diagnostics"]}
 rand = "0.8.5"
 # rfd = "0.11.4"
 base64 = "0.21.2"
-# minijinja = {version="1.0.1",features=["loader","default","json"]}
-minijinja = {git="https://github.com/mitsuhiko/minijinja",features=["default","json","custom_syntax"]}
+minijinja = {version="1.0.9",features=["default","json","custom_syntax"]}
+# minijinja = {git="https://github.com/mitsuhiko/minijinja",features=["default","json","custom_syntax"]}
 # tera = "1.16"
 futures = "0.3.5"
 reqwest = {version="0.11.10",features=["cookies","multipart","json"]}
@@ -65,6 +67,7 @@ rhai = {version = "1.15",features = ["sync","decimal","serde"]}
 # native:
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 # tracing-subscriber = "0.3"
+libsm = "0.5.1"
 rust-crypto = "0.2.36"
 tokio={version="1.26.0",features=["rt","rt-multi-thread","sync"]}
 tokio-stream = {version = "0.1.14"}

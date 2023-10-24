@@ -1,6 +1,7 @@
 use core::fmt::Debug;
+use std::hash::Hash;
 use egui::{Align2, Id, InnerResponse, RichText, Ui, Window};
-use egui_dnd::{utils::shift_vec, DragDropItem, DragDropUi, Handle};
+use egui_dnd::{utils::shift_vec, DragDropItem, Handle, dnd};
 use log::info;
 
 #[derive(Clone, PartialEq, Debug, serde::Deserialize, serde::Serialize)]
@@ -54,7 +55,6 @@ impl TreeUi {
                 title: "ApiPost".to_owned(),
                 node_type: NodeType::Collection,
                 sub_items: Vec::new(),
-                drag_drop_ui: DragDropUi::default(),
             },
         }
     }
@@ -110,12 +110,6 @@ impl TreeUi {
         let mut open_action = None;
 
         ui.horizontal(|ui| {
-            ui.add(
-                egui::TextEdit::singleline(&mut self.filter)
-                    .desired_width(180.0)
-                    .hint_text("筛选条件"),
-            );
-
             if self.open {
                 if ui.small_button("📕").clicked() {
                     self.open = false;
@@ -127,6 +121,12 @@ impl TreeUi {
                     open_action = Some(true);
                 }
             }
+            ui.add(
+                egui::TextEdit::singleline(&mut self.filter)
+                    .desired_width(240.0)
+                    .hint_text("筛选条件"),
+            );
+
         });
 
         //弹框出路action_tmp里的事情
@@ -275,8 +275,13 @@ pub struct TreeUiNode {
     node_type: NodeType,
     // sub_items: BTreeMap<u64, TreeUiNode>,
     sub_items: Vec<TreeUiNode>,
-    #[serde(skip)]
-    drag_drop_ui: DragDropUi,
+}
+
+impl Hash for TreeUiNode {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.id.hash(state);
+        self.title.hash(state);
+    }
 }
 
 impl Debug for TreeUiNode {
@@ -377,7 +382,6 @@ impl TreeUiNode {
             title: String::from(title),
             sub_items: Vec::new(),
             node_type,
-            drag_drop_ui: DragDropUi::default(),
         }
     }
 
@@ -408,12 +412,11 @@ impl TreeUiNode {
                 ui.horizontal(|ui| {
                     // ui.label("▼");
                     if let Some(h) = handler {
-                        h.ui(ui, self, |ui| {
-                            ui.label("🖥");
+                        h.ui(ui, |ui| {
+                            ui.label(RichText::new(format!("(🆔:{})", self.id)).color(egui::Color32::LIGHT_RED));
                         });
                     }
 
-                    ui.label(RichText::new(format!("(🆔:{})", self.id)).color(egui::Color32::LIGHT_RED));
                     let mut context_resp = Option::None;
                     let select_resp = ui
                         .toggle_value(&mut selected, self.title.clone())
@@ -459,7 +462,7 @@ impl TreeUiNode {
                 let (_, head_rep, body_resp) = head
                     .show_header(ui, |ui| {
                         if let Some(h) = handler {
-                            h.ui(ui, self, |ui| {
+                            h.ui(ui, |ui| {
                                 ui.label("🗁");
                             });
                         }
@@ -528,11 +531,10 @@ impl TreeUiNode {
         open: Option<bool>,
     ) -> Action {
         let mut sub_resp = Action::Keep;
-        let drag_resp = self
-            .drag_drop_ui
-            .ui(ui, self.sub_items.iter_mut(), |item, ui, handler| {
+        let drag_resp = dnd(ui, self.id).show(self.sub_items.iter_mut(),
+        |ui, item, handle, _pressed| {
                 // if item.title.contains(flilter) {
-                match item.ui_impl(ui, selected_str, flilter, open, Some(handler)) {
+                match item.ui_impl(ui, selected_str, flilter, open, Some(handle)) {
                     Action::Delete(mut d) => {
                         d.push(self.id);
                         sub_resp = Action::Delete(d);
@@ -560,11 +562,8 @@ impl TreeUiNode {
                 }
                 // }
             });
-
-        if let Some(response) = drag_resp.completed {
-            info!("{}-{}", response.from, response.to);
-            shift_vec(response.from, response.to, &mut self.sub_items);
-        }
+            
+        drag_resp.update_vec(&mut self.sub_items);
 
         sub_resp
         // for sub in self.sub_items.iter_mut() {
@@ -591,8 +590,8 @@ impl TreeUiNode {
     }
 }
 
-impl DragDropItem for TreeUiNode {
-    fn id(&self) -> Id {
-        Id::new(self.id)
-    }
-}
+// impl DragDropItem for TreeUiNode {
+//     fn id(&self) -> Id {
+//         Id::new(self.id)
+//     }
+// }

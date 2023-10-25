@@ -61,9 +61,8 @@ pub const SCRIPT_ENGINE: Lazy<Engine> = Lazy::new(|| {
 fn call_req(id: u64) {
     let task_sender = unsafe { TASK_CHANNEL.0.clone() };
     TOKIO_RT.spawn(async move {
-        if let Err(_) = task_sender.send((id, 1, 1)).await {
+        if (task_sender.send((id, 1, 1)).await).is_err() {
             log::info!("receiver dropped");
-            return;
         }
     });
 }
@@ -95,7 +94,7 @@ mod crypto {
         aes_enc_ctr_string, aes_enc_ecb_string,
     };
     use base64::{engine::general_purpose::STANDARD, Engine};
-    pub mod Aes {
+    pub mod aes {
         #[rhai_fn(return_raw)]
         pub fn decode_cbc(key: &str, input: &str, iv: &str) -> Result<String, Box<EvalAltResult>> {
             aes_dec_cbc_string(key, input, iv)

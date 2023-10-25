@@ -1286,6 +1286,38 @@ dependencies = [
 ]
 
 [[package]]
+name = "gm-sm2"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e2897e5d45c5fa2fd6c93effce47edf3e52cf3a461dbfe2977a3357364a4581b"
+dependencies = [
+ "base64 0.21.5",
+ "byteorder",
+ "gm-sm3",
+ "hex",
+ "lazy_static",
+ "num-bigint-dig",
+ "num-integer",
+ "num-traits",
+ "rand 0.8.5",
+]
+
+[[package]]
+name = "gm-sm3"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ffe08d80bc64633ec6c4a33ff6523ebb3fc9a038735b1deb71fdc0f5c8a64f64"
+
+[[package]]
+name = "gm-sm4"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7b56818bef522abcd7de70e21f1ffcea13979d946a75ccf7c038a291a0ef92f6"
+dependencies = [
+ "hex",
+]
+
+[[package]]
 name = "h2"
 version = "0.3.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1352,6 +1384,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d77f7ec81a6d05a3abb01ab6eb7590f6083d08449fe5a1c8b1e620283546ccb7"
 
 [[package]]
+name = "hex"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
+
+[[package]]
 name = "home"
 version = "0.5.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1384,7 +1422,7 @@ dependencies = [
 
 [[package]]
 name = "http_test_tool"
-version = "0.1.0"
+version = "0.4.0"
 dependencies = [
  "anyhow",
  "base64 0.21.5",
@@ -1406,10 +1444,11 @@ dependencies = [
  "fake",
  "futures",
  "getrandom",
+ "gm-sm2",
+ "gm-sm4",
  "hdrhistogram",
  "json5",
  "json5format",
- "libsm",
  "log",
  "minijinja",
  "once_cell",
@@ -1676,6 +1715,9 @@ name = "lazy_static"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
+dependencies = [
+ "spin",
+]
 
 [[package]]
 name = "libc"
@@ -1704,20 +1746,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "libsm"
-version = "0.5.1"
+name = "libm"
+version = "0.2.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "25393abb28d479f4a60f97de6dd76ebbada05fbcb31bb6610c3dc639801bd176"
-dependencies = [
- "byteorder",
- "getrandom",
- "lazy_static",
- "num-bigint",
- "num-integer",
- "num-traits",
- "rand 0.8.5",
- "yasna",
-]
+checksum = "4ec2a862134d2a7d32d7983ddcdd1c4923530833c9f2ea1a44fc5fa473989058"
 
 [[package]]
 name = "line-wrap"
@@ -1955,14 +1987,18 @@ dependencies = [
 ]
 
 [[package]]
-name = "num-bigint"
-version = "0.4.4"
+name = "num-bigint-dig"
+version = "0.8.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "608e7659b5c3d7cba262d894801b9ec9d00de989e8a82bd4bef91d08da45cdc0"
+checksum = "dc84195820f291c7697304f3cbdadd1cb7199c0efc917ff5eafd71225c136151"
 dependencies = [
- "autocfg",
+ "byteorder",
+ "lazy_static",
+ "libm",
  "num-integer",
+ "num-iter",
  "num-traits",
+ "smallvec",
 ]
 
 [[package]]
@@ -1972,6 +2008,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "225d3389fb3509a24c93f5c29eb6bde2586b98d9f016636dff58d7c6f7569cd9"
 dependencies = [
  "autocfg",
+ "num-traits",
+]
+
+[[package]]
+name = "num-iter"
+version = "0.1.43"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7d03e6c028c5dc5cac6e2dec0efda81fc887605bb3d884578bb6d6bf7514e252"
+dependencies = [
+ "autocfg",
+ "num-integer",
  "num-traits",
 ]
 
@@ -4168,15 +4215,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "56c1936c4cc7a1c9ab21a1ebb602eb942ba868cbd44a99cb7cdc5892335e1c85"
 dependencies = [
  "linked-hash-map",
-]
-
-[[package]]
-name = "yasna"
-version = "0.5.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e17bb3549cc1321ae1296b9cdc2698e2b6cb1992adfa19a8c72e5b7a738f44cd"
-dependencies = [
- "num-bigint",
 ]
 
 [[package]]

@@ -3,6 +3,7 @@ use crypto::blockmodes::PkcsPadding;
 use crypto::buffer::{RefReadBuffer, RefWriteBuffer, WriteBuffer};
 use crypto::symmetriccipher::{Decryptor, Encryptor};
 use base64::{Engine,engine::general_purpose::STANDARD};
+use gm_sm4::Sm4Cipher;
 
 fn get_key_size(key: &[u8]) -> Result<KeySize, String> {
     match key.len() {
@@ -126,6 +127,17 @@ fn aes_dec_ctr(key_size: KeySize, key: &[u8], input: &[u8], iv: &[u8]) -> Result
     a.decrypt(&mut RefReadBuffer::new(&input), &mut buffer, true)
         .map_err(|_| "Dec failed")?;
     Ok(result)
+}
+
+fn sm4_encrypt(key_base64: &str,plaintext:&str) -> String {
+    let df = STANDARD.decode(key_base64);
+    if let Ok(bytes) = df {
+        let cipher = Sm4Cipher::new(&bytes).unwrap();
+        let enc = cipher.encrypt(plaintext.as_bytes()).unwrap();
+        STANDARD.encode(enc)
+    } else {
+        return String::new();
+    }
 }
 
 const BLOCK_SIZE: usize = 16;

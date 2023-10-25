@@ -153,7 +153,7 @@ pub fn rander_template(template: &str) -> Result<String, Error> {
 }
 pub fn remove_global_value(key: &str) {
     if let Ok(mut env) = TEMP_ENV.lock() {
-        let _res = env.remove_global(key);
+        env.remove_global(key);
     }
 }
 

@@ -69,7 +69,6 @@ impl TreeUi {
 
     pub fn del(&mut self, mut del: Vec<u64>) -> Option<Vec<u64>> {
         //第一个节点只有一个，直接删掉
-        dbg!(&del);
         let _node_id = del.pop();
         self.sub_node.delete_item(del)
     }
@@ -126,7 +125,6 @@ impl TreeUi {
                     .desired_width(240.0)
                     .hint_text("筛选条件"),
             );
-
         });
 
         //弹框出路action_tmp里的事情

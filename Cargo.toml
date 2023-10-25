@@ -1,6 +1,6 @@
 [package]
 name = "http_test_tool"
-version = "0.1.0"
+version = "0.4.0"
 authors = ["huangjin"]
 edition = "2021"
 rust-version = "1.65"
@@ -67,7 +67,8 @@ rhai = {version = "1.15",features = ["sync","decimal","serde"]}
 # native:
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 # tracing-subscriber = "0.3"
-libsm = "0.5.1"
+gm-sm2 = "0.10.0"
+gm-sm4 = "0.10.0"
 rust-crypto = "0.2.36"
 tokio={version="1.26.0",features=["rt","rt-multi-thread","sync"]}
 tokio-stream = {version = "0.1.14"}

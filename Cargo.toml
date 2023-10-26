@@ -60,6 +60,7 @@ reqwest = {version="0.11.10",features=["cookies","multipart","json"]}
 # js-sandbox = "0.1.6"
 # rustpython = {git="https://github.com/RustPython/RustPython.git"}
 rhai = {version = "1.15",features = ["sync","decimal","serde"]}
+sled = "0.34.7"
 # rhai-rand = "0.1.5"  
 # rhai-sci = "0.2.0" 
 # rhai-fs = "0.1.2"

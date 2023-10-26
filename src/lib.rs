@@ -6,4 +6,5 @@ pub mod component;
 pub mod request_data;
 pub mod ui;
 pub mod utils;
+pub mod history_db;
 pub use app::TemplateApp;

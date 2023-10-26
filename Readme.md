@@ -70,8 +70,6 @@
 
 ![http_test_KPkBVNDQ1y.png](./screenshots/http_test_KPkBVNDQ1y.png)
 
-## TODO
+### 参考
 
-- [ ] 整理代码
-- [ ] 优化ui
-- [ ] 增加脚本支持
+[日期格式化](https://docs.rs/chrono/latest/chrono/format/strftime/index.html)

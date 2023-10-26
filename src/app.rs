@@ -240,9 +240,9 @@ impl eframe::App for TemplateApp {
         // For inspiration and more examples, go to https://emilk.github.io/egui
 
         if ctx.style().visuals.dark_mode {
-            catppuccin_egui::set_theme(ctx, catppuccin_egui::MACCHIATO);
+            catppuccin_egui::set_theme(ctx, catppuccin_egui::FRAPPE);
         } else {
-            // catppuccin_egui::set_theme(&ctx, catppuccin_egui::LATTE);
+            // catppuccin_egui::set_theme(&ctx, catppuccin_egui::MOCHA);
         }
         let toast = TOASTS.get_or_init(|| {
             Arc::new(Mutex::new(
@@ -302,9 +302,10 @@ impl eframe::App for TemplateApp {
                                 "设置".to_owned(),
                                 "图表".to_owned(),
                                 "导航".to_owned(),
+                                "文档".to_owned(),
+                                "历史记录".to_owned(),
                                 "前置脚本".to_owned(),
                                 "后置脚本".to_owned(),
-                                "文档".to_owned(),
                             ]
                         })
                         .iter()

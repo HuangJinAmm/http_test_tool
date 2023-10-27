@@ -129,7 +129,7 @@ impl TabViewer for ApiContext {
                                 }
                             }
                         }
-                        tree_ui::Action::Rename(adds) => {
+                        tree_ui::Action::Rename(_adds) => {
                             info!("重命名")
                         }
                         tree_ui::Action::Selected((selected_id, selected_title)) => {

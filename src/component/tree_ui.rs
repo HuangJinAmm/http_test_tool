@@ -198,10 +198,11 @@ impl TreeUi {
                                     self.popup = false;
                                 }
                                 if ui.button("取消").clicked() {
-                                    let rename_id = Id::new("tree_ui_rename_cache");
-                                    let mut rename = ui.data_mut(|d|d.get_temp::<String>(rename_id).unwrap_or("".to_string()));
                                     self.popup = false;
                                 }
+                                let rename_id = Id::new("tree_ui_rename_cache");
+                                let rename = ui.data_mut(|d|d.get_temp::<String>(rename_id).unwrap_or("".to_string()));
+                                self.rename = rename;
                                 Action::Keep
                             })
                             .inner

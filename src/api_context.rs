@@ -5,6 +5,7 @@ use std::time::Duration;
 
 use crate::app::TOASTS;
 use crate::component::tree_ui::{TreeUi, self};
+use crate::history_db::{get_history_list, get_apitest};
 use crate::ui::request_ui::{CollectionUi, LoadTestDiagram, LoadTestUi, ScriptUi};
 use crate::utils::rhai_script::SCRIPT_ENGINE;
 use crate::utils::template::{add_global_var, TMP_SCOPE_CTX};
@@ -86,6 +87,22 @@ impl TabViewer for ApiContext {
                     self.script_ui.ui(ui, &mut collect_data.script, selected);
                 }
             }
+            "历史记录" => {
+                let hist_list = get_history_list(selected);
+                egui::ScrollArea::vertical().show(ui, |ui| {
+                    for (ver_name, ver) in hist_list {
+                        ui.horizontal(|ui| {
+                            ui.label(ver.to_string());
+                            if ui.button(ver_name).clicked() {
+                                if let Some(mock) = get_apitest(selected, ver) {
+                                    let recode = self.tests.get_mut(&selected).unwrap();
+                                    *recode = mock;
+                                }
+                            }
+                        });
+                    }
+                });
+            }
             "导航" => {
                 egui::ScrollArea::both().show(ui, |ui| {
                     // ui.with_layout(Layout::top_down(egui::Align::LEFT), |ui|{
@@ -112,8 +129,7 @@ impl TabViewer for ApiContext {
                                 }
                             }
                         }
-                        tree_ui::Action::Rename(_adds) => {
-                            //基本上不用处理
+                        tree_ui::Action::Rename(adds) => {
                             info!("重命名")
                         }
                         tree_ui::Action::Selected((selected_id, selected_title)) => {

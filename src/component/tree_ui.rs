@@ -198,6 +198,8 @@ impl TreeUi {
                                     self.popup = false;
                                 }
                                 if ui.button("取消").clicked() {
+                                    let rename_id = Id::new("tree_ui_rename_cache");
+                                    let mut rename = ui.data_mut(|d|d.get_temp::<String>(rename_id).unwrap_or("".to_string()));
                                     self.popup = false;
                                 }
                                 Action::Keep
@@ -430,6 +432,8 @@ impl TreeUiNode {
                             }
                             if ui.button("重命名").clicked() {
                                 ui.close_menu();
+                                let rename_id = Id::new("tree_ui_rename_cache");
+                                ui.data_mut(|w|w.insert_temp(rename_id, self.title.clone()));
                                 context_resp = Some(Action::Rename(vec![self.id]));
                             }
                             if ui.button("删除").clicked() {

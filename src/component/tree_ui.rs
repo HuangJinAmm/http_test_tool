@@ -493,6 +493,8 @@ impl TreeUiNode {
                                 }
                                 if ui.button("重命名").clicked() {
                                     ui.close_menu();
+                                    let rename_id = Id::new("tree_ui_rename_cache");
+                                    ui.data_mut(|w|w.insert_temp(rename_id, self.title.clone()));
                                     context_resp = Some(Action::Rename(vec![self.id]));
                                 }
                                 if self.id != 0 && ui.button("删除").clicked() {

@@ -10,8 +10,9 @@ use crate::{
 use chrono::Local;
 use egui::{
     global_dark_light_mode_switch, Color32, FontData, FontDefinitions, Frame, Id,
-    Window,
+    Window, ahash::HashMap,
 };
+use egui_dnd::DragDropItem;
 use egui_dock::{DockArea, Style, Tree, DockState};
 use egui_file::{DialogType, FileDialog};
 use egui_notify::Toasts;
@@ -34,6 +35,7 @@ use tokio::{
  * 全局变量
  */
 const TEMP_GLOBAL_KEY: &str = "PRE_HTTP";
+const DOCK_STATE_INPUT_KEY:&str = "dock_stata_input";
 
 static TABS: OnceCell<Vec<String>> = OnceCell::new();
 pub static REQ_UI_ID: OnceCell<Id> = OnceCell::new();
@@ -68,12 +70,13 @@ pub static mut CLIENT: Lazy<Client> = Lazy::new(|| {
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
 pub struct TemplateApp {
-    show_log: bool,
+    // show_log: bool,
 
     test: String,
     // text: DockUi
     // pub tabs: HashSet<String>,
     pub tree: DockState<String>,
+    pub tree_layout: HashMap<String ,DockState<String>>,
     api_data: ApiContext,
     #[serde(skip)]
     opened_file: Option<PathBuf>,
@@ -93,7 +96,7 @@ impl Default for TemplateApp {
 
 
         Self {
-            show_log: false,
+            // show_log: false,
             test: "".to_owned(),
             // tabs:vec![],
             tree: dock_state,
@@ -101,6 +104,7 @@ impl Default for TemplateApp {
             // script_engine: ScriptEngine::new(),
             open_file_dialog: None,
             opened_file: None,
+            tree_layout: HashMap::default(),
         }
     }
 }
@@ -249,12 +253,6 @@ impl eframe::App for TemplateApp {
                 Toasts::default().with_anchor(egui_notify::Anchor::BottomRight),
             ))
         });
-        if self.show_log {
-            Window::new("Log").title_bar(true).show(ctx, |ui| {
-                // draws the logger ui.
-                egui_logger::logger_ui(ui);
-            });
-        }
 
         // #[cfg(not(target_arch = "wasm32"))] // no File->Quit on web pages!
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
@@ -283,14 +281,36 @@ impl eframe::App for TemplateApp {
                         frame.close();
                     }
                 });
-                if ui.selectable_label(self.show_log, "打开日志").clicked() {
-                    self.show_log = !self.show_log;
-                }
+                // if ui.selectable_label(self.show_log, "打开日志").clicked() {
+                //     self.show_log = !self.show_log;
+                // }
                 if !frame.is_web() {
                     ui.menu_button("Zoom", |ui| {
                         egui::gui_zoom::zoom_menu_buttons(ui, frame.info().native_pixels_per_point);
                     });
                 }
+                ui.menu_button("布局", |ui|{
+                    let dsik_id = Id::new(DOCK_STATE_INPUT_KEY);
+                    let mut input_str = ui.data(|w|w.get_temp::<String>(dsik_id)).unwrap_or("default".to_owned());
+                    ui.horizontal(|ui|{
+                        ui.text_edit_singleline(&mut input_str);
+                        if ui.small_button("保存当前布局").clicked() {
+                            self.tree_layout.insert(input_str.to_string(), self.tree.clone());
+                        }
+                    });
+                    let tree_data = self.tree_layout.clone();
+                    for layout_key in tree_data.keys() {
+                        ui.menu_button(layout_key, |ui|{
+                            if ui.small_button("应用当前布局").clicked() {
+                                self.tree = tree_data.get(layout_key).unwrap().clone();
+                            }
+                            if ui.small_button("删除当前布局").clicked() {
+                                self.tree_layout.remove(layout_key);
+                            }
+                        });
+                    } 
+                    ui.data_mut(|w|w.insert_temp(dsik_id, input_str));
+                });
 
                 ui.menu_button("View", |ui| {
                     // allow certain tabs to be toggled
@@ -303,6 +323,7 @@ impl eframe::App for TemplateApp {
                                 "图表".to_owned(),
                                 "导航".to_owned(),
                                 "文档".to_owned(),
+                                "运行日志".to_owned(),
                                 "历史记录".to_owned(),
                                 "前置脚本".to_owned(),
                                 "后置脚本".to_owned(),

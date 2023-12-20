@@ -1,7 +1,7 @@
 // use egui::TextEdit;
 // use egui_extras::{Column, TableBuilder};
 
-use super::syntax_highlight::{highlight, CodeTheme, highlight_temp_key};
+use super::syntax_highlight::{highlight_temp_key};
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 pub struct SelectKeyValueItem {

@@ -10,10 +10,9 @@ use crate::{
 use chrono::Local;
 use egui::{
     global_dark_light_mode_switch, Color32, FontData, FontDefinitions, Frame, Id,
-    Window, ahash::HashMap,
+    ahash::HashMap,
 };
-use egui_dnd::DragDropItem;
-use egui_dock::{DockArea, Style, Tree, DockState};
+use egui_dock::{DockArea, Style, DockState};
 use egui_file::{DialogType, FileDialog};
 use egui_notify::Toasts;
 use futures::StreamExt;
@@ -35,6 +34,7 @@ use tokio::{
  * 全局变量
  */
 const TEMP_GLOBAL_KEY: &str = "PRE_HTTP";
+const APP_KEY: &str = "HTTP_TEST_TOOL_DEBUG";
 const DOCK_STATE_INPUT_KEY:&str = "dock_stata_input";
 
 static TABS: OnceCell<Vec<String>> = OnceCell::new();
@@ -140,7 +140,7 @@ impl TemplateApp {
         // Load previous app state (if any).
         // Note that you must enable the `persistence` feature for this to work.
         if let Some(storage) = cc.storage {
-            let app = eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default();
+            let app = eframe::get_value(storage, APP_KEY).unwrap_or_default();
             return app;
         }
         TemplateApp::default()
@@ -232,7 +232,7 @@ impl TemplateApp {
 impl eframe::App for TemplateApp {
     /// Called by the frame work to save state before shutdown.
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
-        eframe::set_value(storage, eframe::APP_KEY, self);
+        eframe::set_value(storage,APP_KEY, self);
     }
 
     /// Called each time the UI needs repainting, which may be many times per second.
@@ -261,7 +261,7 @@ impl eframe::App for TemplateApp {
                 global_dark_light_mode_switch(ui);
 
                 #[cfg(not(target_arch = "wasm32"))] // no File->Quit on web pages!
-                ui.menu_button("File", |ui| {
+                ui.menu_button("菜单", |ui| {
                     if (ui.button("Import")).clicked() {
                         let mut dialog = FileDialog::open_file(self.opened_file.clone())
                             .show_rename(false)
@@ -285,7 +285,7 @@ impl eframe::App for TemplateApp {
                 //     self.show_log = !self.show_log;
                 // }
                 if !frame.is_web() {
-                    ui.menu_button("Zoom", |ui| {
+                    ui.menu_button("缩放", |ui| {
                         egui::gui_zoom::zoom_menu_buttons(ui, frame.info().native_pixels_per_point);
                     });
                 }
@@ -312,7 +312,7 @@ impl eframe::App for TemplateApp {
                     ui.data_mut(|w|w.insert_temp(dsik_id, input_str));
                 });
 
-                ui.menu_button("View", |ui| {
+                ui.menu_button("视图", |ui| {
                     // allow certain tabs to be toggled
                     for tab in TABS
                         .get_or_init(|| {
@@ -323,6 +323,8 @@ impl eframe::App for TemplateApp {
                                 "图表".to_owned(),
                                 "导航".to_owned(),
                                 "文档".to_owned(),
+                                "样式".to_owned(),
+                                "测试".to_owned(),
                                 "运行日志".to_owned(),
                                 "历史记录".to_owned(),
                                 "前置脚本".to_owned(),

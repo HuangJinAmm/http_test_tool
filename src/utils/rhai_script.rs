@@ -1,5 +1,8 @@
+use std::f64::consts::E;
+
 use once_cell::sync::Lazy;
 use rhai::export_module;
+use rhai::module_resolvers::FileModuleResolver;
 use rhai::module_resolvers::StaticModuleResolver;
 use rhai::plugin::*;
 use rhai::Engine;
@@ -27,6 +30,9 @@ pub const SCRIPT_ENGINE: Lazy<Engine> = Lazy::new(|| {
     // Create new 'FilesystemPackage' instance
     // let random = FilesystemPackage::new();
 
+    let fmr = FileModuleResolver::new_with_path("./rhai");
+
+    engine.set_module_resolver(fmr);
     // Load the package into the `Engine`
     // random.register_into_engine(&mut engine);
     let log = exported_module!(slog);
@@ -162,7 +168,7 @@ mod sfaker {
         a
     }
 
-    pub fn str(low: i64, mut high: i64) -> String {
+    pub fn str(low: i64, high: i64) -> String {
         let low: usize = low.try_into().unwrap_or_default();
         let mut high: usize = high.try_into().unwrap_or_default();
         if high <= low {
@@ -172,7 +178,7 @@ mod sfaker {
         a
     }
 
-    pub fn num_str(low: i64, mut high: i64) -> String {
+    pub fn num_str(low: i64, high: i64) -> String {
         let low: usize = low.try_into().unwrap_or_default();
         let mut high: usize = high.try_into().unwrap_or_default();
         if high <= low {

@@ -117,21 +117,21 @@ impl TextEdit {
     pub fn new_template() -> Self {
         let sug = AutoSuggester::template();
         Self {
-            language: "json".to_owned(),
+            language: "json5".to_owned(),
             suggest: sug,
             sug_pos: None,
             selected_sug: "".to_owned(),
             sug_str: None,
             selected_range: None,
         }
-    }
+   }
 
     pub fn ui(&mut self, ui: &mut egui::Ui, text: &mut String, id: u64) {
         let Self {
             language,
             suggest,
             sug_pos,
-            selected_sug,
+            selected_sug: _,
             sug_str,
             selected_range,
         } = self;

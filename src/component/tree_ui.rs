@@ -1,8 +1,7 @@
 use core::fmt::Debug;
 use std::hash::Hash;
 use egui::{Align2, Id, InnerResponse, RichText, Ui, Window};
-use egui_dnd::{utils::shift_vec, DragDropItem, Handle, dnd};
-use log::info;
+use egui_dnd::{Handle, dnd};
 
 #[derive(Clone, PartialEq, Debug, serde::Deserialize, serde::Serialize)]
 pub enum Action {
@@ -199,10 +198,10 @@ impl TreeUi {
                                 }
                                 if ui.button("取消").clicked() {
                                     self.popup = false;
+                                    let rename_id = Id::new("tree_ui_rename_cache");
+                                    let rename = ui.data_mut(|d|d.get_temp::<String>(rename_id).unwrap_or("".to_string()));
+                                    self.rename = rename;
                                 }
-                                let rename_id = Id::new("tree_ui_rename_cache");
-                                let rename = ui.data_mut(|d|d.get_temp::<String>(rename_id).unwrap_or("".to_string()));
-                                self.rename = rename;
                                 Action::Keep
                             })
                             .inner

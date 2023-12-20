@@ -4,6 +4,8 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use crate::app::TOASTS;
+use crate::component::debug_window::EguiWindows;
+use crate::component::tree::TreeView;
 use crate::component::tree_ui::{TreeUi, self};
 use crate::history_db::{get_history_list, get_apitest};
 use crate::ui::request_ui::{CollectionUi, LoadTestDiagram, LoadTestUi, ScriptUi};
@@ -25,7 +27,10 @@ pub struct ApiContext {
     pub selected: Vec<u64>,
     pub tests: BTreeMap<u64, ApiTester>,
     pub collections: BTreeMap<u64, CollectionsData>,
+    debug_window: EguiWindows,
     tree_ui: TreeUi,
+    #[serde(skip)]
+    tree_view: TreeView,
     #[serde(skip)]
     req_ui: RequestUi,
     #[serde(skip)]
@@ -166,8 +171,13 @@ impl TabViewer for ApiContext {
                 });
                 //    });
             }
+            "样式" => {
+                self.debug_window.checkboxes(ui);
+                self.debug_window.windows(ui.ctx());
+            }
             _ => {
-                ui.label(tab.as_str());
+                let resp = self.tree_view.show(ui);
+                dbg!(resp);
             }
         }
     }
@@ -232,7 +242,9 @@ impl ApiContext {
     pub fn new() -> Self {
         Self {
             tests: BTreeMap::new(),
+            tree_view:TreeView::new(),
             tree_ui: TreeUi::new(),
+            debug_window:EguiWindows::default(),
             collections: BTreeMap::new(),
             req_ui: RequestUi::default(),
             selected: vec![0],
@@ -254,7 +266,6 @@ impl ApiContext {
         if let Some(aip) = self.tests.get(&cid) {
             SCRIPT_ENGINE.run_with_scope(script_scope, &aip.script.pre)?;
         }
-        dbg!(&script_scope);
         let mut script_ctx: HashMap<String, Value> = HashMap::new();
 
         for (name, _is_constant, value) in script_scope.iter() {

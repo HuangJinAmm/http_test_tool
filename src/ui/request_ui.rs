@@ -5,17 +5,13 @@ use crate::app::TOKIO_RT;
 use crate::component::code_editor::TextEdit;
 use crate::component::header_ui::HeaderUi;
 use crate::component::header_ui::SelectKeyValueItem;
-use crate::component::syntax_highlight::CodeTheme;
 use crate::component::syntax_highlight::code_view_ui;
-use crate::component::syntax_highlight::highlight;
 use crate::component::syntax_highlight::highlight_temp_key;
 use crate::request_data::LoadTestData;
 use crate::request_data::Method;
 use crate::request_data::ResponseData;
-use crate::request_data::ScriptData;
 use crate::utils::template::rander_template;
 use crate::{
-    api_context::CollectionsData, component::editeable_label::editable_label,
     request_data::RequestData,
 };
 use egui::Color32;
@@ -42,7 +38,7 @@ impl RequestUi {
 
     pub fn ui(&mut self, ui: &mut egui::Ui, request_data: &mut RequestData, id: u64) {
         let RequestData {
-            remark,
+            remark: _,
             url,
             method,
             headers,
@@ -292,7 +288,7 @@ impl ResponseUi {
             ui.horizontal(|ui| {
                 ui.label("响应状态码：");
                 let code_rich_text = match code.parse::<usize>() {
-                    Err(e) => RichText::new(""),
+                    Err(_e) => RichText::new(""),
                     Ok(x) if x >= 100 && x < 200 => {
                         RichText::new(x.to_string()).color(Color32::YELLOW)
                     }

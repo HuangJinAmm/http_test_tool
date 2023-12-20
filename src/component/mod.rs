@@ -6,3 +6,7 @@ pub mod header_ui;
 pub mod password;
 pub mod syntax_highlight;
 pub mod tree_ui;
+pub mod tree;
+pub mod theme;
+
+pub mod debug_window;

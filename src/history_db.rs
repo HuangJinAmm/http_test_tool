@@ -53,8 +53,8 @@ pub fn add_new_version_mockinfo(id: u64, mock_info: &ApiTester) {
         history_list.push((now, last_id));
         let _res: Result<(), sled::transaction::TransactionError<String>> =
             db.transaction(|tx_db| {
-                let val = convert_to_IVec(mock_info);
-                tx_db.insert(HIST_LIST_KEY, convert_to_IVec(&history_list))?;
+                let val = convert_to_ivec(mock_info);
+                tx_db.insert(HIST_LIST_KEY, convert_to_ivec(&history_list))?;
                 tx_db.insert(key_to_ivec(last_id), val)?;
                 Ok(())
             });
@@ -75,7 +75,7 @@ fn decompose_key(key: IVec) -> Option<(u64, u32)> {
     }
 }
 
-fn convert_to_IVec<T>(obj: &T) -> IVec
+fn convert_to_ivec<T>(obj: &T) -> IVec
 where
     T: ?Sized + Serialize,
 {

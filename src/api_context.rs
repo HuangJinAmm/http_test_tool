@@ -5,7 +5,7 @@ use std::time::Duration;
 
 use crate::app::TOASTS;
 use crate::component::debug_window::EguiWindows;
-use crate::component::tree::TreeView;
+use crate::component::tree::{DocType, TreeNode, TreeView};
 use crate::component::tree_ui::{TreeUi, self};
 use crate::history_db::{get_history_list, get_apitest};
 use crate::ui::request_ui::{CollectionUi, LoadTestDiagram, LoadTestUi, ScriptUi};
@@ -178,10 +178,11 @@ impl TabViewer for ApiContext {
             _ => {
                 let resp = self.tree_view.show(ui);
                 if let Some(true) = &resp.new_file {
-                    dbg!(&resp); 
+                    self.tree_view.add(TreeNode::new("new_file".into(),Some(DocType::PlainText),0),None);
                 }
-                if let Some(_) = &resp.new_folder_modal {
-                    dbg!(&resp); 
+                if let Some(id) = &resp.new_folder_modal {
+                    self.tree_view.add(TreeNode::new("new_folder".into(),None,0),Some(*id));
+                    dbg!(&self.tree_view);
                 }
             }
         }

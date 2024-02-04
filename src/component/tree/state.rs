@@ -7,6 +7,7 @@ use std::{
 use eframe::egui;
 use uuid::Uuid;
 
+#[derive(Debug)]
 pub struct TreeState {
     pub id: egui::Id,
     pub max_node_width: f32,
@@ -64,14 +65,14 @@ impl TreeState {
     }
 }
 
-#[derive(Default)]
+#[derive(Default,Debug)]
 pub struct TreeDragAndDropState {
     pub is_primary_down: bool,
     pub has_moved: bool,
     pub dropped: Option<egui::Pos2>,
 }
 
-#[derive(Default)]
+#[derive(Default,Debug)]
 pub struct NodeRenamingState {
     pub id: Option<Uuid>,
     pub tmp_name: String,

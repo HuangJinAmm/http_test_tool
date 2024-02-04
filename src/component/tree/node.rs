@@ -2,6 +2,7 @@ use std::cmp::Ordering;
 use std::thread;
 
 use eframe::egui;
+use egui::TextStyle;
 use hdrhistogram::iterators::all;
 use uuid::Uuid;
 
@@ -10,6 +11,7 @@ use crate::component::theme::Icon;
 use super::response::*;
 use super::state::*;
 
+#[derive(Debug)]
 pub enum DocType {
     PlainText,
     Markdown,
@@ -44,7 +46,7 @@ impl DocType {
     }
 }
 
-#[derive(Default)]
+#[derive(Default,Debug)]
 pub struct TreeNode {
     pub id: Uuid,
     pub parent_id: Option<Uuid>,
@@ -212,13 +214,18 @@ impl TreeNode {
         let depth_inset = self.depth_inset() + 5.0;
         let wrap_width = ui.available_width();
 
-        let icon = if self.doc_type.is_none() {
+        
+        let icon = if self.doc_type.is_none() && state.expanded.contains(&self.id){
             let wt: egui::WidgetText = (&Icon::FOLDER_OPEN).into();
+            wt.color(ui.visuals().hyperlink_color)
+        } else if self.doc_type.is_none() {
+            let wt: egui::WidgetText = (&Icon::FOLDER).into();
             wt.color(ui.visuals().hyperlink_color)
         } else {
             let wt: egui::WidgetText = (&self.icon()).into();
             wt.color(ui.visuals().text_color().gamma_multiply(0.6))
         };
+
 
         let icon = icon.into_galley(ui, Some(false), wrap_width, egui::TextStyle::Body);
 
@@ -425,6 +432,12 @@ impl TreeNode {
             }
         }
         None
+    }
+
+    pub fn add_child(&mut self, mut node: TreeNode) {
+        node.parent_id = Some(self.id);
+        node.depth = self.depth + 1;
+        self.children.push(node);
     }
 }
 

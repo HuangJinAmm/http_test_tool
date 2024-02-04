@@ -6,10 +6,12 @@ pub use self::node::TreeNode;
 
 use eframe::egui;
 use uuid::Uuid;
+pub use self::node::DocType;
 
 use self::response::NodeResponse;
 use self::state::*;
 
+#[derive(Debug)]
 pub struct TreeView {
     pub root: TreeNode,
     pub state: TreeState,
@@ -166,6 +168,17 @@ impl TreeView {
             if let Some(mut removed) = node.remove(f) {
                 clear_children(&mut self.state, &mut removed);
             }
+        }
+    }
+
+
+    pub fn add(&mut self, new_node: TreeNode, parent: Option<Uuid>) {
+        if let Some(parent_id) = parent {
+            if let Some(node) = self.root.find_mut(parent_id) {
+                node.add_child(new_node);
+            }
+        } else {
+            self.root.add_child(new_node);
         }
     }
 

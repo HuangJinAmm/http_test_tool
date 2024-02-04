@@ -177,7 +177,12 @@ impl TabViewer for ApiContext {
             }
             _ => {
                 let resp = self.tree_view.show(ui);
-                dbg!(resp);
+                if let Some(true) = &resp.new_file {
+                    dbg!(&resp); 
+                }
+                if let Some(_) = &resp.new_folder_modal {
+                    dbg!(&resp); 
+                }
             }
         }
     }

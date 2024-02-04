@@ -7,12 +7,14 @@ fn main() -> eframe::Result<()> {
     // Log to stdout (if you run with `RUST_LOG=debug`).
     // tracing_subscriber::fmt::init();
 
-    use eframe::IconData;
+    use egui::ViewportBuilder;
+
     egui_logger::init().unwrap();
     log::set_max_level(log::LevelFilter::Debug);
     let mut native_options = eframe::NativeOptions::default();
-    let icon = IconData::try_from_png_bytes(include_bytes!("../http.png")).unwrap();
-    native_options.icon_data = Some(icon);
+    let icon = eframe::icon_data::from_png_bytes(include_bytes!("../http.png")).unwrap();
+    native_options.persist_window = true;
+    native_options.viewport = ViewportBuilder::default().with_icon(icon);
     eframe::run_native(
         "Http测试工具",
         native_options,

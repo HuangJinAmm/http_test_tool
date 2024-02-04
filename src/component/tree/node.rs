@@ -256,8 +256,8 @@ impl TreeNode {
 
             let visuals = ui.style().interact(&resp);
 
-            icon.paint_with_visuals(ui.painter(), icon_pos, visuals);
-            text.paint_with_visuals(ui.painter(), text_pos, visuals);
+            ui.painter().galley(icon_pos, icon, visuals.text_color());
+            ui.painter().galley(text_pos,text, visuals.text_color());
         }
 
         let is_drop_target = self.doc_type.is_none()

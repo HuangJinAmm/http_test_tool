@@ -9,8 +9,7 @@ use crate::{
 };
 use chrono::Local;
 use egui::{
-    global_dark_light_mode_switch, Color32, FontData, FontDefinitions, Frame, Id,
-    ahash::HashMap,
+    ahash::HashMap, global_dark_light_mode_switch, Color32, FontData, FontDefinitions, Frame, Id, ViewportCommand
 };
 use egui_dock::{DockArea, Style, DockState};
 use egui_file::{DialogType, FileDialog};
@@ -265,7 +264,7 @@ impl eframe::App for TemplateApp {
                     if (ui.button("Import")).clicked() {
                         let mut dialog = FileDialog::open_file(self.opened_file.clone())
                             .show_rename(false)
-                            .filter(Box::new(|p| p.to_string_lossy().ends_with("json")));
+                            .show_files_filter(Box::new(|p| p.to_string_lossy().ends_with("json")));
                         dialog.open();
                         self.open_file_dialog = Some(dialog);
                     }
@@ -278,7 +277,7 @@ impl eframe::App for TemplateApp {
                     }
 
                     if ui.button("Quit").clicked() {
-                        frame.close();
+                        ctx.send_viewport_cmd(ViewportCommand::Close);
                     }
                 });
                 // if ui.selectable_label(self.show_log, "打开日志").clicked() {
@@ -286,7 +285,7 @@ impl eframe::App for TemplateApp {
                 // }
                 if !frame.is_web() {
                     ui.menu_button("缩放", |ui| {
-                        egui::gui_zoom::zoom_menu_buttons(ui, frame.info().native_pixels_per_point);
+                        egui::gui_zoom::zoom_menu_buttons(ui);
                     });
                 }
                 ui.menu_button("布局", |ui|{

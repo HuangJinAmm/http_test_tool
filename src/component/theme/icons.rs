@@ -46,7 +46,7 @@ impl Icon {
     pub const ITALIC: Self = ic("\u{e23f}");
     pub const MONEY: Self = ic("\u{e263}"); // Monetization On
     pub const NUMBER_LIST: Self = ic("\u{e242}"); // Number List
-    pub const PLACE_ITEM: Self = ic("\u{f1f0}"); // Place Item
+    pub const PLACE_ITEM: Self = ic("🖹"); // Place Item
     pub const PREVIEW: Self = ic("\u{f1c5}"); // Preview
     pub const SETTINGS: Self = ic("\u{e8b8}"); // Settings
     pub const SPARKLE: Self = ic("\u{e65f}"); // Auto Awesome

@@ -239,7 +239,7 @@ impl TreeNode {
             ui.ctx().request_repaint();
         }
 
-        let desired_size = egui::vec2(state.max_node_width, text_height + padding.y * 2.0);
+        let desired_size = egui::vec2(state.max_node_width, text_height + padding.y * 4.0);
 
         let (rect, resp) = ui.allocate_exact_size(desired_size, egui::Sense::click_and_drag());
         if ui.is_rect_visible(rect) {
@@ -254,7 +254,7 @@ impl TreeNode {
             ui.painter().rect(rect, 0.0, bg, egui::Stroke::NONE);
 
             let icon_pos =
-                egui::pos2(rect.min.x + depth_inset, rect.center().y - icon.size().y / 4.0 - 1.0);
+                egui::pos2(rect.min.x + depth_inset, rect.center().y - icon.size().y / 2.0 );
 
             let text_pos = egui::pos2(
                 rect.min.x + depth_inset + padding.x + icon.size().x,

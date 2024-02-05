@@ -71,7 +71,7 @@ impl TreeView {
             ui.spacing_mut().button_padding = egui::vec2(4.0, 4.0);
 
             if ui.button("New Document").clicked() {
-                r.inner.new_file = Some(true);
+                r.inner.new_file = Some(self.root.id.clone());
                 ui.close_menu();
             }
             // if ui.button("New Drawing").clicked() {

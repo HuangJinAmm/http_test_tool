@@ -6,7 +6,7 @@ use uuid::Uuid;
 #[derive(Default,Debug)]
 pub struct NodeResponse {
     pub open_requests: HashSet<Uuid>,
-    pub new_file: Option<bool>,
+    pub new_file: Option<Uuid>,
     pub new_drawing: Option<bool>,
     // pub export_file: Option<Result<(Uuid, PathBuf),Error>>,
     pub new_folder_modal: Option<Uuid>,

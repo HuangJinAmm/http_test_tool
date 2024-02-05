@@ -177,8 +177,8 @@ impl TabViewer for ApiContext {
             }
             _ => {
                 let resp = self.tree_view.show(ui);
-                if let Some(true) = &resp.new_file {
-                    self.tree_view.add(TreeNode::new("new_file".into(),Some(DocType::PlainText),0),None);
+                if let Some(id) = &resp.new_file {
+                    self.tree_view.add(TreeNode::new("new_file".into(),Some(DocType::PlainText),0),Some(*id));
                 }
                 if let Some(id) = &resp.new_folder_modal {
                     self.tree_view.add(TreeNode::new("new_folder".into(),None,0),Some(*id));

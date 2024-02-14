@@ -15,7 +15,7 @@ use crate::{
     request_data::{LoadTestData, RequestData, ResponseData, ScriptData},
     ui::request_ui::{RequestUi, ResponseUi},
 };
-use egui::WidgetText;
+use egui::{Id, WidgetText};
 use egui_dock::TabViewer;
 use egui_notify::Toasts;
 use log::info;
@@ -182,7 +182,9 @@ impl TabViewer for ApiContext {
                 }
                 if let Some(id) = &resp.new_folder_modal {
                     self.tree_view.add(TreeNode::new("new_folder".into(),None,0),Some(*id));
-                    dbg!(&self.tree_view);
+                }
+                if let Some(id) = &resp.dropped_on {
+                    self.tree_view.add(TreeNode::new("new_folder".into(),None,0),Some(*id));
                 }
             }
         }

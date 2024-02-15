@@ -227,7 +227,7 @@ impl TreeNode {
         };
 
 
-        let icon = icon.into_galley(ui, Some(false), wrap_width, egui::TextStyle::Body);
+        let icon = icon.into_galley(ui, Some(false), wrap_width, egui::TextStyle::Small);
 
         let text: egui::WidgetText = (&self.name).into();
         let text = text.into_galley(ui, Some(false), wrap_width, egui::TextStyle::Body);
@@ -309,7 +309,7 @@ impl TreeNode {
 
         ui.spacing_mut().button_padding = egui::vec2(4.0, 4.0);
 
-        if ui.button("New Document").clicked() {
+        if ui.button("新建文件").clicked() {
             node_resp.new_file = Some(self.id.clone());
             ui.close_menu();
         }
@@ -319,14 +319,14 @@ impl TreeNode {
         //     ui.close_menu();
         // }
 
-        if ui.button("New Folder").clicked() {
+        if ui.button("新建文件夹").clicked() {
             node_resp.new_folder_modal = Some(self.id.clone());
             ui.close_menu();
         }
 
         ui.separator();
 
-        if ui.button("Rename").clicked() {
+        if ui.button("重命名").clicked() {
             state.renaming = NodeRenamingState::new(self.id,&self.name);
 
             let name = &state.renaming.tmp_name;
@@ -342,7 +342,7 @@ impl TreeNode {
             ui.close_menu();
         }
 
-        if ui.button("Delete").clicked() {
+        if ui.button("删除").clicked() {
             node_resp.delete_request = true;
             ui.close_menu();
         }
@@ -401,6 +401,19 @@ impl TreeNode {
         self.children.push(node);
     }
 
+    pub fn remove_rec(&mut self,id:Uuid) -> Option<TreeNode> {
+        if let Some(node) = self.remove(id) {
+            return Some(node); 
+        } else {
+            for child in self.children.iter_mut() {
+                if let Some(node) = child.remove(id) {
+                    return Some(node); 
+                } 
+            }
+        }
+        None
+    }
+
     pub fn remove(&mut self, id: Uuid) -> Option<TreeNode> {
         for (i, node) in self.children.iter().enumerate() {
             if node.id == id {
@@ -408,6 +421,12 @@ impl TreeNode {
             }
         }
         None
+    }
+    
+    pub fn rename(&mut self,id:&Uuid,name:&str) {
+        if let Some(rename_node) = self.find_mut(id.to_owned()) {
+            rename_node.name = name.to_owned(); 
+        }
     }
 
     pub fn find(&self, id: Uuid) -> Option<&TreeNode> {

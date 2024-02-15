@@ -184,7 +184,10 @@ impl TabViewer for ApiContext {
                     self.tree_view.add(TreeNode::new("new_folder".into(),None,0),Some(*id));
                 }
                 if let Some(id) = &resp.dropped_on {
-                    self.tree_view.add(TreeNode::new("new_folder".into(),None,0),Some(*id));
+                    self.tree_view.move_selected(id);
+                }
+                if let Some((id,name)) = &resp.rename_request {
+                    self.tree_view.root.rename(id,name); 
                 }
             }
         }

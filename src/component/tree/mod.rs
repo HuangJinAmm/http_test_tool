@@ -151,7 +151,7 @@ impl TreeView {
                             egui::Frame::none()
                                 .rounding(3.0)
                                 .inner_margin(egui::style::Margin::symmetric(12.0, 7.0))
-                                .fill(ui.visuals().faint_bg_color)
+                                .fill(ui.visuals().window_fill)
                                 .show(ui, |ui| {
                                     ui.label(self.state.drag_caption());
                                 });

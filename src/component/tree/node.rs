@@ -4,6 +4,8 @@ use std::thread;
 use eframe::egui;
 use egui::TextStyle;
 use hdrhistogram::iterators::all;
+use serde::Deserialize;
+use serde::Serialize;
 use uuid::Uuid;
 
 use crate::component::theme::Icon;
@@ -11,7 +13,7 @@ use crate::component::theme::Icon;
 use super::response::*;
 use super::state::*;
 
-#[derive(Debug)]
+#[derive(Debug,Serialize,Deserialize)]
 pub enum DocType {
     PlainText,
     Markdown,
@@ -46,7 +48,7 @@ impl DocType {
     }
 }
 
-#[derive(Default,Debug)]
+#[derive(Default,Debug,Serialize,Deserialize)]
 pub struct TreeNode {
     pub id: Uuid,
     pub parent_id: Option<Uuid>,

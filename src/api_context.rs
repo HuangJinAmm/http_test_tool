@@ -29,7 +29,6 @@ pub struct ApiContext {
     pub collections: BTreeMap<u64, CollectionsData>,
     debug_window: EguiWindows,
     tree_ui: TreeUi,
-    #[serde(skip)]
     tree_view: TreeView,
     #[serde(skip)]
     req_ui: RequestUi,

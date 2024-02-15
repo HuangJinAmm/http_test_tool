@@ -5,13 +5,14 @@ mod state;
 pub use self::node::TreeNode;
 
 use eframe::egui;
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 pub use self::node::DocType;
 
 use self::response::NodeResponse;
 use self::state::*;
 
-#[derive(Debug)]
+#[derive(Debug,Serialize,Deserialize)]
 pub struct TreeView {
     pub root: TreeNode,
     pub state: TreeState,

@@ -5,13 +5,14 @@ mod state;
 pub use self::node::TreeNode;
 
 use eframe::egui;
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 pub use self::node::DocType;
 
 use self::response::NodeResponse;
 use self::state::*;
 
-#[derive(Debug)]
+#[derive(Debug,Serialize,Deserialize)]
 pub struct TreeView {
     pub root: TreeNode,
     pub state: TreeState,
@@ -30,6 +31,16 @@ impl TreeView {
         let state = TreeState::default();
 
         Self { root, state }
+    }
+
+    pub fn move_selected(&mut self,id: &Uuid) {
+        for sid in self.state.selected.iter() {
+            if let Some(node) = self.root.remove_rec(sid.to_owned()) {
+                if let Some(snode) = self.root.find_mut(id.to_owned()) {
+                    snode.insert_node(node) 
+                } 
+            } 
+        }
     }
 
     pub fn expand_to(&mut self, id: Uuid) {
@@ -70,7 +81,7 @@ impl TreeView {
         empty_space_res.context_menu(|ui| {
             ui.spacing_mut().button_padding = egui::vec2(4.0, 4.0);
 
-            if ui.button("New Document").clicked() {
+            if ui.button("新建文件").clicked() {
                 r.inner.new_file = Some(self.root.id.clone());
                 ui.close_menu();
             }
@@ -78,7 +89,7 @@ impl TreeView {
             //     r.inner.new_drawing = Some(true);
             //     ui.close_menu();
             // }
-            if ui.button("New Folder").clicked() {
+            if ui.button("新建文件夹").clicked() {
                 r.inner.new_folder_modal = Some(self.root.id.clone());
                 ui.close_menu();
             }

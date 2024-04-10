@@ -29,7 +29,6 @@ pub struct ApiContext {
     pub collections: BTreeMap<u64, CollectionsData>,
     debug_window: EguiWindows,
     tree_ui: TreeUi,
-    #[serde(skip)]
     tree_view: TreeView,
     #[serde(skip)]
     req_ui: RequestUi,
@@ -178,13 +177,16 @@ impl TabViewer for ApiContext {
             _ => {
                 let resp = self.tree_view.show(ui);
                 if let Some(id) = &resp.new_file {
-                    self.tree_view.add(TreeNode::new("new_file".into(),Some(DocType::PlainText),0),Some(*id));
+                    self.tree_view.add(TreeNode::new("新文件".into(),Some(DocType::PlainText),0),Some(*id));
                 }
                 if let Some(id) = &resp.new_folder_modal {
-                    self.tree_view.add(TreeNode::new("new_folder".into(),None,0),Some(*id));
+                    self.tree_view.add(TreeNode::new("新文件夹".into(),None,0),Some(*id));
                 }
                 if let Some(id) = &resp.dropped_on {
-                    self.tree_view.add(TreeNode::new("new_folder".into(),None,0),Some(*id));
+                    self.tree_view.move_selected(id);
+                }
+                if let Some((id,name)) = &resp.rename_request {
+                    self.tree_view.root.rename(id,name); 
                 }
             }
         }

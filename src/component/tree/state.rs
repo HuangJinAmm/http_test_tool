@@ -5,24 +5,30 @@ use std::{
 };
 
 use eframe::egui;
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-#[derive(Debug)]
+#[derive(Debug,Serialize,Deserialize)]
 pub struct TreeState {
     pub id: egui::Id,
     pub max_node_width: f32,
     pub selected: HashSet<Uuid>,
     pub expanded: HashSet<Uuid>,
+    #[serde(skip)]
     pub renaming: NodeRenamingState,
+    #[serde(skip)]
     pub request_scroll: bool,
+    #[serde(skip)]
     pub dnd: TreeDragAndDropState,
-    pub update_tx: Sender<TreeUpdate>,
-    pub update_rx: Receiver<TreeUpdate>,
+    // #[serde(skip)]
+    // pub update_tx: Sender<TreeUpdate>,
+    // #[serde(skip)]
+    // pub update_rx: Receiver<TreeUpdate>,
 }
 
 impl Default for TreeState {
     fn default() -> Self {
-        let (update_tx, update_rx) = mpsc::channel();
+        // let (update_tx, update_rx) = mpsc::channel();
         Self {
             id: egui::Id::new("filetree"),
             max_node_width: 0.0,
@@ -31,8 +37,8 @@ impl Default for TreeState {
             dnd: TreeDragAndDropState::default(),
             renaming: NodeRenamingState::default(),
             request_scroll: false,
-            update_tx,
-            update_rx,
+            // update_tx,
+            // update_rx,
         }
     }
 }

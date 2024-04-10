@@ -242,11 +242,11 @@ impl eframe::App for TemplateApp {
         // Tip: a good default choice is to just keep the `CentralPanel`.
         // For inspiration and more examples, go to https://emilk.github.io/egui
 
-        if ctx.style().visuals.dark_mode {
-            catppuccin_egui::set_theme(ctx, catppuccin_egui::FRAPPE);
-        } else {
+        // if ctx.style().visuals.dark_mode {
+        //     catppuccin_egui::set_theme(ctx, catppuccin_egui::FRAPPE);
+        // } else {
             // catppuccin_egui::set_theme(&ctx, catppuccin_egui::MOCHA);
-        }
+        // }
         let toast = TOASTS.get_or_init(|| {
             Arc::new(Mutex::new(
                 Toasts::default().with_anchor(egui_notify::Anchor::BottomRight),

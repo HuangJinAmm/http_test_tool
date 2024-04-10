@@ -80,7 +80,7 @@ impl TabViewer for ApiContext {
                 }
             }
             "运行日志" => {
-                egui_logger::logger_ui(ui);
+                // egui_logger::logger_ui(ui);
             }
             "后置脚本" => {
                 if let Some(req_data) = self.tests.get_mut(&selected) {

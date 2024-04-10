@@ -1,4 +1,4 @@
-use egui::{epaint::ahash::HashMap, text_edit::CursorRange, Id, Pos2, TextBuffer};
+use egui::{epaint::ahash::HashMap, text::CursorRange, Id, Pos2, TextBuffer};
 use log::debug;
 use std::ops::Range;
 use weighted_trie::WeightedTrie;

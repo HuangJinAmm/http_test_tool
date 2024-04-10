@@ -2,6 +2,7 @@ use std::cmp::Ordering;
 use std::thread;
 
 use eframe::egui;
+use egui::text::CCursorRange;
 use egui::TextStyle;
 use hdrhistogram::iterators::all;
 use uuid::Uuid;
@@ -202,7 +203,9 @@ impl TreeNode {
             }
         }
 
-        resp = resp.context_menu(|ui| self.context_menu(ui, &mut node_resp, state));
+        if let Some(r) = resp.context_menu(|ui| self.context_menu(ui, &mut node_resp, state)) {
+            resp = r.response;
+        };
 
         (resp, node_resp)
     }
@@ -333,7 +336,7 @@ impl TreeNode {
             let end_pos = name.rfind('.').unwrap_or(name.len());
 
             let mut rename_edit_state = egui::text_edit::TextEditState::default();
-            rename_edit_state.set_ccursor_range(Some(egui::text_edit::CCursorRange {
+            rename_edit_state.set_ccursor_range(Some(CCursorRange {
                 primary: egui::text::CCursor::new(end_pos),
                 secondary: egui::text::CCursor::new(0),
             }));

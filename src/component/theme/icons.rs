@@ -33,8 +33,8 @@ impl Icon {
     pub const EMPTY_INBOX: Self = ic("\u{f07e}"); // Upcoming
     pub const ERASER: Self = ic("\u{e16c}"); // Upcoming
     pub const DELETE: Self = ic("\u{e872}"); // Delete
-    pub const FOLDER: Self = ic("▷"); // Folder
-    pub const FOLDER_OPEN: Self = ic("▽"); // Folder Open
+    pub const FOLDER: Self = ic("\u{f07b}"); // Folder
+    pub const FOLDER_OPEN: Self = ic("\u{f07c}"); // Folder Open
     pub const GROUP: Self = ic("\u{e7ef}"); // Group
     pub const HISTORY: Self = ic("\u{e889}"); // History
     pub const HIGHLIGHT_OFF: Self = ic("\u{e888}"); // Highlight Off

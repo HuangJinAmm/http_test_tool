@@ -444,7 +444,7 @@ impl TreeUiNode {
                     if context_resp.is_some() {
                         return context_resp.unwrap();
                     }
-                    if select_resp.clicked() {
+                    if select_resp.is_some_and(|r| r.response.clicked()) {
                         return Action::Selected((vec![self.id], self.title.clone()));
                     } else {
                         return Action::Keep;
@@ -504,7 +504,7 @@ impl TreeUiNode {
                         if context_resp.is_some() {
                             return context_resp.unwrap();
                         }
-                        if select_resp.clicked() {
+                        if select_resp.is_some_and(|r|r.response.clicked()) {
                             return Action::Selected((vec![self.id], self.title.clone()));
                         } else {
                             return Action::Keep;

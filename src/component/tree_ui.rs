@@ -109,12 +109,12 @@ impl TreeUi {
 
         ui.horizontal(|ui| {
             if self.open {
-                if ui.small_button("📕").clicked() {
+                if ui.small_button(egui_nerdfonts::regular::FOLDER_OPEN).clicked() {
                     self.open = false;
                     open_action = Some(false);
                 }
             } else {
-                if ui.small_button("📖").clicked() {
+                if ui.small_button(egui_nerdfonts::regular::FOLDER).clicked() {
                     self.open = true;
                     open_action = Some(true);
                 }
@@ -413,14 +413,16 @@ impl TreeUiNode {
                     // ui.label("▼");
                     if let Some(h) = handler {
                         h.ui(ui, |ui| {
-                            ui.label(RichText::new(format!("(🆔:{})", self.id)).color(egui::Color32::LIGHT_RED));
+                            ui.label(RichText::new(format!("{}:{}", egui_nerdfonts::regular::IDENTIFIER,self.id)).color(egui::Color32::LIGHT_RED));
                         });
                     }
 
                     let mut context_resp = Option::None;
                     let select_resp = ui
-                        .toggle_value(&mut selected, self.title.clone())
-                        .context_menu(|ui| {
+                        .toggle_value(&mut selected, self.title.clone());
+
+
+                        select_resp.context_menu(|ui| {
                             // if ui.button("添加集合").clicked() {
                             //     ui.close_menu();
                             //     context_resp =
@@ -444,7 +446,7 @@ impl TreeUiNode {
                     if context_resp.is_some() {
                         return context_resp.unwrap();
                     }
-                    if select_resp.is_some_and(|r| r.response.clicked()) {
+                    if select_resp.clicked() {
                         return Action::Selected((vec![self.id], self.title.clone()));
                     } else {
                         return Action::Keep;
@@ -465,7 +467,7 @@ impl TreeUiNode {
                     .show_header(ui, |ui| {
                         if let Some(h) = handler {
                             h.ui(ui, |ui| {
-                                ui.label("🗁");
+                                ui.label(egui_nerdfonts::regular::FOLDER_OPEN2);
                             });
                         }
                         // ui.label(

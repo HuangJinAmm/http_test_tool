@@ -30,11 +30,11 @@ egui_dock ={version="0.12.0", features=["serde"]}
 # catppuccin-egui ={ version = "5.1.0"}
 # catppuccin-egui ={git= "https://github.com/catppuccin/egui"}
 egui-modal = "0.3.6"
-egui_nerdfonts = "0.1.2"
+egui_nerdfonts = {path = "../egui_nerdfonts"}
 egui_json_tree = "0.5.0"
 # egui_heatmap = "0.4.5"
-egui_code_editor = "0.2.6"
-egui-data-table = "0.2.0"
+# egui_code_editor = "0.2.7"
+# egui-data-table = "0.2.0"
 colorful = "0.2.2"
 log = "0.4.17"
 

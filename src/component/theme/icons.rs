@@ -15,7 +15,7 @@ const fn ic(c: &'static str) -> Icon {
 
 impl Icon {
     pub const ACCOUNT: Self = ic("\u{e7ff}"); // Person Outline
-    pub const ARROW_CIRCLE_DOWN: Self = ic("↳"); // Arrow Circle Down
+    pub const ARROW_CIRCLE_DOWN: Self = ic(egui_nerdfonts::regular::ARROW_DOWN_CIRCLE); // Arrow Circle Down
     pub const BRUSH: Self = ic("\u{e3ae}"); // Bold Text
     pub const BOLD: Self = ic("\u{e238}"); // Bold Text
     pub const CHECK_CIRCLE: Self = ic("\u{e86c}"); // Check Circle
@@ -25,8 +25,8 @@ impl Icon {
     pub const CLOSE: Self = ic("\u{e5cd}"); // Close
     pub const CODE: Self = ic("\u{e86f}"); // Code
     pub const CONTENT_COPY: Self = ic("\u{e14d}"); // Content Copy
-    pub const DOC_UNKNOWN: Self = ic("🗋"); // Note
-    pub const DOC_TEXT: Self = ic("🖹"); // Description
+    pub const DOC_UNKNOWN: Self = ic(egui_nerdfonts::regular::NOTE); // Note
+    pub const DOC_TEXT: Self = ic(egui_nerdfonts::regular::NOTE_TEXT); // Note TextDescription
     pub const DONE: Self = ic("\u{e876}"); // Done
     pub const DRAW: Self = ic("🖻"); // Draw
     pub const EDIT: Self = ic("\u{e254}"); // Mode Edit

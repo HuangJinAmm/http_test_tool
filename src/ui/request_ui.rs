@@ -15,15 +15,20 @@ use crate::{
     request_data::RequestData,
 };
 use egui::Color32;
+use egui::Id;
 use egui::RichText;
 use egui_commonmark::CommonMarkCache;
 use egui_commonmark::CommonMarkViewer;
+use egui_json_tree::JsonTree;
 use egui_plot::Bar;
 use egui_plot::BarChart;
 use egui_plot::Legend;
 use egui_plot::Line;
 use egui_plot::Plot;
+use once_cell::sync::OnceCell;
 use serde_json::Value;
+
+static  JSON_VIEWER_ID:OnceCell<Id> = OnceCell::new();
 pub struct RequestUi {
     pub editor: TextEdit,
 }
@@ -175,6 +180,7 @@ impl RequestUi {
                                         }
                                     };
                                     template_str = match json5::from_str::<Value>(&deal_temp) {
+
                                         Ok(json_body) => serde_json::to_string_pretty(&json_body)
                                             .unwrap_or(body.clone()),
                                         Err(_) => body.clone(),
@@ -284,6 +290,14 @@ impl ResponseUi {
             code,
             time,
         } = data;
+        let id = Id::new("json_viewer_id");
+
+        let mut json_viewer: bool = ui.data_mut(|w|{
+            if w.get_temp::<bool>(id).is_none() {
+                w.insert_temp(id, false);
+            }
+            w.get_temp(id).unwrap_or(false)
+        });
         ui.vertical(|ui| {
             ui.horizontal(|ui| {
                 ui.label("响应状态码：");
@@ -307,12 +321,17 @@ impl ResponseUi {
                 ui.label("响应大小：");
                 ui.label(size.to_string());
                 ui.label("B");
+                ui.spacing();
+                ui.toggle_value(&mut json_viewer, egui_nerdfonts::regular::CODE_JSON);
             });
+
+
+
             ui.group(|ui| {
                 egui::ScrollArea::both()
                     .id_source("respone_ui_scroller_1")
                     .show(ui, |ui| {
-                        // ui.set_min_size(ui.available_size());
+                        ui.set_min_size(ui.available_size());
 
                         ui.with_layout(egui::Layout::top_down_justified(egui::Align::LEFT), |ui| {
                             ui.collapsing("响应头", |ui| {
@@ -320,7 +339,17 @@ impl ResponseUi {
                             });
                             // ui.add_sized(
                             // ui.available_size(),
-                            code_view_ui(ui, body, "json");
+                            
+                            if json_viewer {
+                                let value = match serde_json::from_str::<Value>(body) {
+                                    Ok(json_body) => json_body,
+                                    Err(e) => Value::String(e.to_string()),
+                                };
+                                JsonTree::new("simple-tree", &value).show(ui);
+                            } else {
+                                code_view_ui(ui, body, "json");
+                            }
+                            ui.data_mut(|w| w.insert_temp(id, json_viewer))
                             // egui::text_edit::TextEdit::multiline(&mut self.body)
                             // .desired_rows(24),
                             // );

@@ -131,6 +131,8 @@ impl TemplateApp {
             .or_default()
             .push("my_font".to_owned());
 
+        egui_nerdfonts::add_to_fonts(&mut fonts, egui_nerdfonts::Variant::Regular);
+
         cc.egui_ctx.set_fonts(fonts);
 
         // This is also where you can customize the look and feel of egui using
